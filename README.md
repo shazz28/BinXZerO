@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7603999d06ce7b535d01f961605a17a5a66fbe5f
 # BinXZer0 - Smart Waste Management System
 
 BinXZer0 is a modern web-based waste management system designed to optimize waste collection and monitoring through smart technology.
