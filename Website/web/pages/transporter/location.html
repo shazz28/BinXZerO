@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Tracker - BinXZer0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        .dashboard-container { min-height: calc(100vh - 136px); padding: 2rem 0; }
+        #map { height: 450px; width: 100%; margin-top: 20px; border: 1px solid #ddd; border-radius: 0.5rem; }
+        .transporter-info { margin-bottom: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .transporter-info h3 { margin-top: 0; color: #333; }
+        .status-active { color: #28a745; font-weight: bold; }
+        .status-inactive { color: #dc3545; font-weight: bold; }
+        .controls { margin-bottom: 20px; }
+    </style>
+    <script src="/assets/js/apikeys.js"></script>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+    <div class="dashboard-container">
+        <div class="container">
+            <h1 class="mb-4">Real-time Transporter Location Tracker</h1>
+            <div class="controls">
+                <label for="transporter-select" class="form-label">Select Transporter:</label>
+                <select id="transporter-select" class="form-select w-auto d-inline-block">
+                    <option value="all">All Transporters</option>
+                </select>
+            </div>
+            <div id="transporters-list"></div>
+            <div id="map"></div>
+        </div>
+    </div>
+    <div id="footer-placeholder"></div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/assets/js/logout-ui.js" type="module"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+
+        async function loadTemplates() {
+            try {
+                const [navResponse, footerResponse] = await Promise.all([
+                    fetch('/assets/templates/tranav.html'),
+                    fetch('/assets/templates/bottomnav.html')
+                ]);
+                if (!navResponse.ok || !footerResponse.ok) throw new Error('Failed to load templates');
+                const [navData, footerData] = await Promise.all([
+                    navResponse.text(),
+                    footerResponse.text()
+                ]);
+                document.getElementById('navbar-placeholder').innerHTML = navData;
+                document.getElementById('footer-placeholder').innerHTML = footerData;
+                // Workaround for logout button ID mismatch
+                const logoutButton = document.getElementById('logoutButton');
+                if (logoutButton) logoutButton.id = 'logout-link';
+            } catch (error) {
+                console.error('Error loading templates:', error);
+                document.getElementById('navbar-placeholder').innerHTML = '<p class="text-danger">Error loading navigation</p>';
+                document.getElementById('footer-placeholder').innerHTML = '<p class="text-danger">Error loading footer</p>';
+            }
+        }
+
+        loadTemplates();
+
+        if (!window.apiKeys?.firebase) {
+            console.error('API keys not loaded');
+            document.getElementById('map').innerHTML = '<p class="text-danger text-center">Error: Authentication service unavailable</p>';
+            return;
+        }
+
+        const app = initializeApp(window.apiKeys.firebase);
+        const database = getDatabase(app);
+        const auth = getAuth(app);
+
+        let map;
+        let markers = {};
+
+        function initMap() {
+            if (!window.google?.maps) {
+                console.error('Google Maps API not loaded');
+                document.getElementById('map').innerHTML = '<p class="text-danger text-center">Error: Map service unavailable</p>';
+                return;
+            }
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 13.1000, lng: 77.5700 },
+                zoom: 12
+            });
+            listenForTransporterUpdates();
+        }
+
+        function listenForTransporterUpdates() {
+            const transportersRef = ref(database, 'transporters');
+            onValue(transportersRef, (snapshot) => {
+                const transportersData = snapshot.val() || {};
+                updateTransportersUI(transportersData);
+                updateTransporterSelect(transportersData);
+                updateMapMarkers(transportersData);
+            }, (error) => {
+                console.error('Error fetching transporters:', error);
+                document.getElementById('transporters-list').innerHTML = '<p class="text-danger">Error loading transporter data</p>';
+            });
+        }
+
+        function updateTransportersUI(transporters) {
+            const transportersList = document.getElementById('transporters-list');
+            transportersList.innerHTML = '';
+            const selectedTransporterId = document.getElementById('transporter-select').value;
+
+            Object.keys(transporters).forEach(id => {
+                if (selectedTransporterId !== 'all' && selectedTransporterId !== id) return;
+                const transporter = transporters[id];
+                const lastUpdated = new Date(transporter.lastUpdated || Date.now()).toLocaleString();
+                const isActive = (Date.now() - (transporter.lastUpdated || 0)) < 5 * 60 * 1000;
+
+                const transporterElement = document.createElement('div');
+                transporterElement.className = 'transporter-info';
+                transporterElement.innerHTML = `
+                    <h3>${transporter.fullName || 'Transporter ' + id.slice(0, 8)}</h3>
+                    <p><strong>ID:</strong> ${id}</p>
+                    <p><strong>Location:</strong> ${transporter.location?.lat?.toFixed(6) || 'N/A'}, ${transporter.location?.lng?.toFixed(6) || 'N/A'}</p>
+                    <p><strong>Speed:</strong> ${transporter.speed || 'N/A'} km/h</p>
+                    <p><strong>Status:</strong> <span class="status-${isActive ? 'active' : 'inactive'}">${isActive ? 'Active' : 'Inactive'}</span></p>
+                    <p><strong>Last Updated:</strong> ${lastUpdated}</p>
+                `;
+                transportersList.appendChild(transporterElement);
+            });
+
+            if (transportersList.innerHTML === '') {
+                transportersList.innerHTML = '<p>No transporters available or matching the selected filter.</p>';
+            }
+        }
+
+        function updateTransporterSelect(transporters) {
+            const transporterSelect = document.getElementById('transporter-select');
+            const currentValue = transporterSelect.value;
+            while (transporterSelect.options.length > 1) {
+                transporterSelect.remove(1);
+            }
+            Object.keys(transporters).forEach(id => {
+                const transporter = transporters[id];
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = transporter.fullName || 'Transporter ' + id.slice(0, 8);
+                transporterSelect.appendChild(option);
+            });
+            if (currentValue && [...transporterSelect.options].some(opt => opt.value === currentValue)) {
+                transporterSelect.value = currentValue;
+            }
+        }
+
+        function updateMapMarkers(transporters) {
+            const selectedTransporterId = document.getElementById('transporter-select').value;
+            const currentIds = new Set();
+            Object.keys(transporters).forEach(id => {
+                if (selectedTransporterId !== 'all' && selectedTransporterId !== id) return;
+                currentIds.add(id);
+                const transporter = transporters[id];
+                if (transporter.location?.lat && transporter.location?.lng) {
+                    const position = {
+                        lat: transporter.location.lat,
+                        lng: transporter.location.lng
+                    };
+                    if (markers[id]) {
+                        markers[id].setPosition(position);
+                    } else {
+                        markers[id] = new google.maps.Marker({
+                            position: position,
+                            map: map,
+                            title: transporter.fullName || 'Transporter ' + id.slice(0, 8),
+                            icon: {
+                                path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                                scale: 5,
+                                fillColor: '#28a745',
+                                fillOpacity: 1,
+                                strokeWeight: 1,
+                                rotation: transporter.heading || 0
+                            }
+                        });
+                        const infoWindow = new google.maps.InfoWindow({
+                            content: `
+                                <div>
+                                    <h3>${transporter.fullName || 'Transporter ' + id.slice(0, 8)}</h3>
+                                    <p><strong>ID:</strong> ${id}</p>
+                                    <p><strong>Speed:</strong> ${transporter.speed || 'N/A'} km/h</p>
+                                </div>
+                            `
+                        });
+                        markers[id].addListener('click', () => {
+                            infoWindow.open(map, markers[id]);
+                        });
+                    }
+                }
+            });
+            Object.keys(markers).forEach(id => {
+                if (!currentIds.has(id)) {
+                    markers[id].setMap(null);
+                    delete markers[id];
+                }
+            });
+            if (Object.keys(markers).length > 0) {
+                const bounds = new google.maps.LatLngBounds();
+                Object.values(markers).forEach(marker => {
+                    bounds.extend(marker.getPosition());
+                });
+                map.fitBounds(bounds);
+            }
+        }
+
+        document.getElementById('transporter-select').addEventListener('change', () => {
+            const transportersRef = ref(database, 'transporters');
+            onValue(transportersRef, (snapshot) => {
+                const transportersData = snapshot.val() || {};
+                updateTransportersUI(transportersData);
+                updateMapMarkers(transportersData);
+            }, { onlyOnce: true });
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = '/login.html';
+                return;
+            }
+            initMap();
+        });
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=${window.apiKeys.GOOGLE_MAPS_API_KEY}&callback=initMap"></script>
+</body>
+</html>

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Public Absence Management - BinXZer0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        .card { border: none; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-control:focus, .form-select:focus { border-color: #20c997; box-shadow: 0 0 0 0.2rem rgba(32, 201, 151, 0.25); }
+        .table { background: white; border-radius: 8px; overflow: hidden; }
+        .btn-success { background-color: #20c997; border-color: #20c997; }
+        .btn-success:hover { background-color: #1ba87e; border-color: #1ba87e; }
+        footer { flex-shrink: 0; }
+        .container { flex: 1 0 auto; }
+        .notification { position: fixed; top: 20px; right: 20px; z-index: 1050; }
+        .navbar-nav .nav-link:hover { color: #e0f7f1; }
+        body { min-height: 100vh; display: flex; flex-direction: column; }
+        .Absence-balance-card { background-color: #f8f9fa; border-left: 4px solid #20c997; }
+        .navbar-dark .navbar-nav .nav-link { color: white; }
+    </style>
+</head>
+<body>
+    <!-- Navigation Placeholder -->
+    <div id="navbar-placeholder"></div>
+
+    <!-- Main content -->
+    <div class="container my-5 pt-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="mb-4"><i class="fas fa-calendar-alt me-2"></i>Community Absence Management</h2>
+                <p class="lead mb-4">
+                    Request absence from community recycling activities. Your request will be recorded for coordination purposes.
+                </p>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-4 mb-4">
+                <div class="card Absence-balance-card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-success"><i class="fas fa-info-circle me-2"></i>Absence Information</h5>
+                        <hr>
+                        <p>As a valued community member, you have an allocation of absence days from our recycling activities</p>
+                        <div class="d-flex align-items-center mt-3">
+                            <div class="flex-grow-1">
+                                <span class="d-block fw-bold">Absences Left:</span>
+                                <div class="progress mt-2" style="height: 10px;">
+                                    <div id="AbsenceProgress" class="progress-bar bg-success" role="progressbar"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <small>Used</small>
+                                    <small id="AbsenceBalanceText">Loading...</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-calendar-plus me-2"></i>Request Community Absence</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="AbsenceApplicationForm">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="AbsenceType" class="form-label">Absence Type <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="AbsenceType" required>
+                                        <option value="" selected disabled>Select Absence type</option>
+                                        <option value="vacation">Vacation</option>
+                                        <option value="office">Office</option>
+                                        <option value="others">Others</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="AbsenceDuration" class="form-label">Duration <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="AbsenceDuration" required>
+                                        <option value="" selected disabled>Select duration</option>
+                                        <option value="single">Single Day</option>
+                                        <option value="multiple">Multiple Days</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="startDate" class="form-label">Start Date <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="startDate" min="" required>
+                                </div>
+                                <div class="col-md-6" id="endDateContainer" style="display: none;">
+                                    <label for="endDate" class="form-label">End Date <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="endDate" min="">
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2 mt-4">
+                                <button type="reset" class="btn btn-outline-secondary"><i class="fas fa-times me-1"></i>Clear Form</button>
+                                <button type="submit" class="btn btn-success"><i class="fas fa-paper-plane me-1"></i>Submit Request</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Absence History</h5>
+                        <div id="loadingSpinner" class="spinner-border spinner-border-sm text-white d-none" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th>Reference</th>
+                                        <th>Type</th>
+                                        <th>From</th>
+                                        <th>To</th>
+                                        <th>Days</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="AbsenceHistoryBody">
+                                    <tr>
+                                        <td colspan="7" class="text-center py-3">Loading Absence history...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Placeholder -->
+    <div id="footer-placeholder"></div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-database-compat.js"></script>
+    <script src="/assets/js/apikeys.js"></script>
+    <script type="module" src="/assets/js/logout-ui.js"></script>
+
+
+    <script>
+        // Load navigation and footer
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('/assets/templates/pplnav.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('navbar-placeholder').innerHTML = data;
+                    const dropdowns = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+                    dropdowns.forEach(dropdown => new bootstrap.Dropdown(dropdown));
+                })
+                .catch(error => console.error('Error loading navigation:', error));
+
+            fetch('/assets/templates/bottomnav.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('footer-placeholder').innerHTML = data;
+                })
+                .catch(error => console.error('Error loading footer:', error));
+        });
+
+        // Firebase initialization
+        if (!window.apiKeys || !window.apiKeys.firebase) {
+            console.error('Firebase configuration not found');
+            document.body.innerHTML = '<div class="alert alert-danger">Error: Application configuration is missing. Please contact support.</div>';
+        } else {
+            firebase.initializeApp(window.apiKeys.firebase);
+            const db = firebase.database();
+            const auth = firebase.auth();
+            let currentUser = null;
+
+            // Utility Functions
+            const showNotification = (type, message) => {
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type} alert-dismissible fade show notification`;
+                alert.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle me-2"></i>${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+                document.body.appendChild(alert);
+                setTimeout(() => alert.classList.remove('show'), 5000);
+            };
+
+            const showLoading = () => document.getElementById('loadingSpinner').classList.remove('d-none');
+            const hideLoading = () => document.getElementById('loadingSpinner').classList.add('d-none');
+
+            // Authentication
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    initializeUserData();
+                    loadAbsenceHistory();
+                } else {
+                    window.location.href = '/login.html';
+                }
+            });
+
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').min = today;
+            document.getElementById('endDate').min = today;
+
+            // Initialize user data if it doesn't exist
+            async function initializeUserData() {
+                const userRef = db.ref(`community_Absences/${currentUser.uid}`);
+                const snapshot = await userRef.once('value');
+                if (!snapshot.exists()) {
+                    await userRef.set({
+                        totalAbsences: 12,
+                        absences: {},
+                        usedDays: 0
+                    });
+                }
+                loadAbsenceBalance();
+            }
+
+            // Load Absence Balance
+            async function loadAbsenceBalance() {
+                try {
+                    const userRef = db.ref(`community_Absences/${currentUser.uid}`);
+                    const snapshot = await userRef.once('value');
+                    const data = snapshot.val();
+                    
+                    const totalAbsences = data.totalAbsences || 12;
+                    const used = data.usedDays || 0;
+                    const remaining = totalAbsences - used;
+                    const percentage = (remaining / totalAbsences) * 100;
+
+                    document.getElementById('AbsenceProgress').style.width = `${percentage}%`;
+                    document.getElementById('AbsenceBalanceText').textContent = `${remaining}/${totalAbsences} days`;
+                } catch (error) {
+                    showNotification('danger', 'Error loading Absence balance: ' + error.message);
+                }
+            }
+
+            // Load Absence History
+            async function loadAbsenceHistory() {
+                showLoading();
+                try {
+                    const tbody = document.getElementById('AbsenceHistoryBody');
+                    tbody.innerHTML = '';
+                    const absencesRef = db.ref(`community_Absences/${currentUser.uid}/absences`);
+                    const snapshot = await absencesRef.once('value');
+
+                    if (snapshot.exists()) {
+                        snapshot.forEach(child => {
+                            const absence = child.val();
+                            const row = document.createElement('tr');
+                            const days = calculateDays(absence.startDate, absence.endDate, absence.duration);
+
+                            row.innerHTML = `
+                                <td>${absence.referenceId}</td>
+                                <td>${absence.absenceType.charAt(0).toUpperCase() + absence.absenceType.slice(1)}</td>
+                                <td>${new Date(absence.startDate).toLocaleDateString()}</td>
+                                <td>${absence.endDate ? new Date(absence.endDate).toLocaleDateString() : '-'}</td>
+                                <td>${days}</td>
+                                <td><span class="badge bg-success">Recorded</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary view-Absence me-1" data-id="${child.key}" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-Absence" data-id="${child.key}" data-days="${days}" title="Delete Absence">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                        initTooltips();
+                        addAbsenceActionListeners();
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3">No Absence history found. Submit your first request above.</td></tr>';
+                    }
+                } catch (error) {
+                    showNotification('danger', 'Error loading Absence history: ' + error.message);
+                }
+                hideLoading();
+            }
+
+            // Calculate Days
+            function calculateDays(start, end, duration) {
+                if (duration === 'single') return 1;
+                const startDate = new Date(start);
+                const endDate = new Date(end);
+                return Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            }
+
+            // Absence Actions (View and Delete)
+            function addAbsenceActionListeners() {
+                // View Absence
+                document.querySelectorAll('.view-Absence').forEach(btn => {
+                    btn.onclick = async () => {
+                        const absenceId = btn.dataset.id;
+                        const snapshot = await db.ref(`community_Absences/${currentUser.uid}/absences/${absenceId}`).once('value');
+                        const absence = snapshot.val();
+
+                        const modalElement = document.createElement('div');
+                        modalElement.classList.add('modal', 'fade');
+                        modalElement.innerHTML = `
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-light">
+                                        <h5 class="modal-title">Absence Details (${absence.referenceId})</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <span class="badge bg-success mb-3">Recorded</span>
+                                        </div>
+                                        <p><strong>Type:</strong> ${absence.absenceType.charAt(0).toUpperCase() + absence.absenceType.slice(1)}</p>
+                                        <p><strong>Duration:</strong> ${absence.duration === 'single' ? 'Single Day' : 'Multiple Days'}</p>
+                                        <p><strong>Start Date:</strong> ${new Date(absence.startDate).toLocaleDateString()}</p>
+                                        <p><strong>End Date:</strong> ${absence.endDate ? new Date(absence.endDate).toLocaleDateString() : '-'}</p>
+                                        <p><strong>Total Days:</strong> ${calculateDays(absence.startDate, absence.endDate, absence.duration)}</p>
+                                        <p><strong>Recorded On:</strong> ${new Date(absence.appliedAt).toLocaleString()}</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>`;
+
+                        document.body.appendChild(modalElement);
+                        const modal = new bootstrap.Modal(modalElement);
+                        modal.show();
+
+                        modalElement.addEventListener('hidden.bs.modal', () => {
+                            modalElement.remove();
+                        });
+                    };
+                });
+
+                // Delete Absence
+                document.querySelectorAll('.delete-Absence').forEach(btn => {
+                    btn.onclick = async () => {
+                        const absenceId = btn.dataset.id;
+                        const days = parseInt(btn.dataset.days);
+
+                        if (confirm('Are you sure you want to delete this absence?')) {
+                            try {
+                                const userRef = db.ref(`community_Absences/${currentUser.uid}`);
+                                await userRef.transaction(data => {
+                                    if (data && data.absences && data.absences[absenceId]) {
+                                        delete data.absences[absenceId];
+                                        data.usedDays = Math.max(0, (data.usedDays || 0) - days);
+                                        return data;
+                                    }
+                                    return data;
+                                });
+                                showNotification('success', 'Absence deleted successfully');
+                                loadAbsenceHistory();
+                                loadAbsenceBalance();
+                            } catch (error) {
+                                showNotification('danger', 'Error deleting absence: ' + error.message);
+                            }
+                        }
+                    };
+                });
+            }
+
+            // Form Handling
+            document.getElementById('AbsenceDuration').onchange = e => {
+                const endDateContainer = document.getElementById('endDateContainer');
+                endDateContainer.style.display = e.target.value === 'multiple' ? 'block' : 'none';
+                document.getElementById('endDate').required = e.target.value === 'multiple';
+            };
+
+            document.getElementById('AbsenceApplicationForm').onsubmit = async e => {
+                e.preventDefault();
+                if (!currentUser) {
+                    showNotification('danger', 'User not authenticated');
+                    return;
+                }
+
+                const formData = {
+                    memberId: currentUser.uid,
+                    referenceId: `CL-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+                    absenceType: document.getElementById('AbsenceType').value,
+                    duration: document.getElementById('AbsenceDuration').value,
+                    startDate: document.getElementById('startDate').value,
+                    endDate: document.getElementById('AbsenceDuration').value === 'multiple' ? document.getElementById('endDate').value : document.getElementById('startDate').value,
+                    status: 'recorded',
+                    appliedAt: new Date().toISOString()
+                };
+
+                if (formData.duration === 'multiple' && new Date(formData.startDate) > new Date(formData.endDate)) {
+                    showNotification('danger', 'End date must be after or equal to start date');
+                    return;
+                }
+
+                try {
+                    const userRef = db.ref(`community_Absences/${currentUser.uid}`);
+                    const days = calculateDays(formData.startDate, formData.endDate, formData.duration);
+                    
+                    await userRef.transaction(data => {
+                        if (!data) {
+                            data = { totalAbsences: 12, absences: {}, usedDays: 0 };
+                        }
+                        const newAbsenceKey = db.ref().push().key;
+                        data.absences[newAbsenceKey] = formData;
+                        data.usedDays = (data.usedDays || 0) + days;
+                        return data;
+                    });
+
+                    showNotification('success', 'Absence recorded successfully');
+                    e.target.reset();
+                    document.getElementById('endDateContainer').style.display = 'none';
+                    loadAbsenceHistory();
+                    loadAbsenceBalance();
+                } catch (error) {
+                    showNotification('danger', 'Error recording Absence: ' + error.message);
+                }
+            };
+
+            // Tooltips
+            function initTooltips() {
+                document.querySelectorAll('[title]').forEach(el => new bootstrap.Tooltip(el));
+            }
+        }
+    </script>
+</body>
+</html>

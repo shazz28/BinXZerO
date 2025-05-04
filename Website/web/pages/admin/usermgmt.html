@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - BinXZer0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        body { display: flex; flex-direction: column; min-height: 100vh; }
+        .management-container { flex: 1; padding: 2rem 0; }
+        .employee-card { transition: transform 0.3s; margin: 10px; border: 2px solid #d4edda; background-color: #f8f9fa; border-radius: 10px; }
+        .employee-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .status-active { color: var(--primary-color); }
+        .status-inactive { color: #dc3545; }
+        .employee-image { width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 2px solid #ced4da; }
+        .search-container { margin-bottom: 20px; }
+        .card { border: none; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .btn-filter { margin-right: 5px; margin-top: 2.5px; margin-bottom: 2.5px;font-size: 1.25rem;padding: 10px 175px; border-radius: 8px;}
+        .btn-filter.active {background-color: #28a745; color: white; border-color: #28a745; }
+        .btn-filter:hover {transform: scale(1.05); box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); transition: all 0.3s ease; }
+        .loading-spinner { display: flex; justify-content: center; align-items: center; height: 200px; }
+        #employeeContainer { display: flex; flex-wrap: wrap; gap: 20px; text-align:center; }
+        #employeeContainer .col-md-6, #employeeContainer .col-lg-4 { flex: 0 0 auto; width: 100%;;}
+        @media (min-width: 768px) { #employeeContainer .col-md-6 { width: calc(50% - 10px);}}
+        @media (min-width: 992px) { #employeeContainer .col-lg-4 { width: calc(33.33% - 13.33px);}}
+        footer { margin-top: auto; }
+    </style>
+</head>
+<body>
+    <header id="nav-container"></header>
+
+    <div class="management-container">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body text-center">
+                            <div class="btn-group mb-3" id="typeFilterGroup">
+                                <button class="btn btn-outline-success btn-filter active" data-filter="all">All</button>
+                                <button class="btn btn-outline-success btn-filter" data-filter="transporter">Transporter</button>
+                                <button class="btn btn-outline-success btn-filter" data-filter="public">Public</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="search-container">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-success text-white">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                            <input type="text" id="searchInput" class="form-control" placeholder="Search users...">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 text-md-end">
+                                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+                                        <i class="fas fa-plus me-1"></i> Add User
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="loadingSpinner" class="loading-spinner">
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    
+                    <div id="employeeContainer" class="row" style="display: none;"></div>
+                    
+                    <div id="noEmployeesMessage" class="alert alert-info text-center" style="display: none;">
+                        <i class="fas fa-info-circle me-2"></i> No users found.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addEmployeeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Add New User</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addEmployeeForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">User Type</label>
+                                <select class="form-select" id="employeeType" required>
+                                    <option value="transporter">Transporter</option>
+                                    <option value="public">Public</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="employeeName" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="employeeEmail" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="employeePhone" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3" id="transporterFields">
+                            <div class="col-md-6">
+                                <label class="form-label">Position</label>
+                                <select class="form-select" id="employeePosition">
+                                    <option value="">Select Position</option>
+                                    <option value="Driver">Driver</option>
+                                    <option value="Waste Collector">Waste Collector</option>
+                                    <option value="Team Lead">Team Lead</option>
+                                    <option value="Supervisor">Supervisor</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" id="employeeStatus">
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Joining Date</label>
+                                <input type="date" class="form-control" id="employeeJoiningDate" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Address</label>
+                                <textarea class="form-control" id="employeeAddress" rows="2" required></textarea>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" id="employeePassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Photo URL</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fa-solid fa-user-tie"></i></span>
+                                <input type="url" class="form-control" id="employeePhoto" placeholder="">
+                            </div>
+                            <small class="text-muted">Leave empty to use default avatar</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="saveEmployeeBtn">Save User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="employeeDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">User Details</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="employeeDetailsContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="editEmployeeBtn">Edit</button>
+                    <button type="button" class="btn btn-danger" id="deleteEmployeeBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editEmployeeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Edit User</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editEmployeeForm">
+                        <input type="hidden" id="editEmployeeId">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="editEmployeeName" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="editEmployeeEmail" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="editEmployeePhone" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Position</label>
+                                <select class="form-select" id="editEmployeePosition">
+                                    <option value="">Select Position</option>
+                                    <option value="Driver">Driver</option>
+                                    <option value="Waste Collector">Waste Collector</option>
+                                    <option value="Team Lead">Team Lead</option>
+                                    <option value="Supervisor">Supervisor</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Joining Date</label>
+                                <input type="date" class="form-control" id="editEmployeeJoiningDate" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" id="editEmployeeStatus">
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <textarea class="form-control" id="editEmployeeAddress" rows="2" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">New Password (Leave empty to keep current)</label>
+                            <input type="password" class="form-control" id="editEmployeePassword">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Photo URL</label>
+                            <input type="url" class="form-control" id="editEmployeePhoto" placeholder="http://example.com/photo.jpg">
+                            <small class="text-muted">Leave empty to use default avatar</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="updateEmployeeBtn">Update User</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this user? This action cannot be undone.</p>
+                    <input type="hidden" id="deleteEmployeeId">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer id="footer-container"></footer>
+
+    <script src="/assets/js/apikeys.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/assets/js/logout-ui.js" type="module"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+        import { getDatabase, ref, onValue, set, update, remove } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+        async function init() {
+            try {
+                await Promise.all([
+                    fetch('/assets/templates/adminnav.html').then(res => res.text()).then(data => document.getElementById('nav-container').innerHTML = data),
+                    fetch('/assets/templates/bottomnav.html').then(res => res.text()).then(data => document.getElementById('footer-container').innerHTML = data)
+                ]);
+
+                const app = initializeApp(window.apiKeys.firebase);
+                const auth = getAuth(app);
+                const db = getDatabase(app);
+
+                const employeeContainer = document.getElementById('employeeContainer');
+                const loadingSpinner = document.getElementById('loadingSpinner');
+                const noEmployeesMessage = document.getElementById('noEmployeesMessage');
+                const searchInput = document.getElementById('searchInput');
+                const typeFilterButtons = document.querySelectorAll('#typeFilterGroup .btn-filter');
+                const addEmployeeForm = document.getElementById('addEmployeeForm');
+                const saveEmployeeBtn = document.getElementById('saveEmployeeBtn');
+                const updateEmployeeBtn = document.getElementById('updateEmployeeBtn');
+                const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+                const editEmployeeBtn = document.getElementById('editEmployeeBtn');
+                const employeeTypeSelect = document.getElementById('employeeType');
+
+                let currentData = [];
+                let selectedUserId = null;
+                let selectedUserType = null;
+                let currentFilter = 'all';
+
+                const employeeDetailsModal = new bootstrap.Modal(document.getElementById('employeeDetailsModal'));
+                const editEmployeeModal = new bootstrap.Modal(document.getElementById('editEmployeeModal'));
+                const deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+
+                onAuthStateChanged(auth, (user) => {
+                    if (!user) {
+                        window.location.href = "/login.html";
+                    } else {
+                        fetchData();
+                    }
+                });
+
+                function normalizeAddress(address) {
+                    if (!address || address === "[object Object]") return "";
+                    if (typeof address === "string") return address;
+                    return [address.street, address.city, address.state, address.zipCode, address.country].filter(Boolean).join(", ");
+                }
+
+                async function fetchData() {
+                    loadingSpinner.style.display = 'flex';
+                    employeeContainer.style.display = 'none';
+                    noEmployeesMessage.style.display = 'none';
+
+                    const transportersRef = ref(db, 'transporters');
+                    const publicRef = ref(db, 'public');
+
+                    onValue(transportersRef, (snapshot) => {
+                        const transporterData = snapshot.val() || {};
+                        updateCurrentData('transporter', transporterData);
+                        renderData();
+                    }, (error) => handleError(error));
+
+                    onValue(publicRef, (snapshot) => {
+                        const publicData = snapshot.val() || {};
+                        updateCurrentData('public', publicData);
+                        renderData();
+                    }, (error) => handleError(error));
+                }
+
+                function updateCurrentData(type, data) {
+                    currentData = currentData.filter(item => item.type !== type);
+                    for (const key in data) {
+                        currentData.push({
+                            id: key,
+                            type,
+                            ...data[key],
+                            fullName: data[key].fullName || data[key].name || 'N/A',
+                            status: data[key].status || 'active',
+                            position: data[key].position || (type === 'public' ? 'Public User' : 'N/A')
+                        });
+                    }
+                }
+
+                function renderData() {
+                    employeeContainer.innerHTML = '';
+                    const searchTerm = searchInput.value.toLowerCase();
+                    let filteredData = currentData;
+
+                    if (currentFilter !== 'all') {
+                        filteredData = filteredData.filter(item => item.type === currentFilter);
+                    }
+
+                    if (searchTerm) {
+                        filteredData = filteredData.filter(item => 
+                            (item.fullName && item.fullName.toLowerCase().includes(searchTerm)) || 
+                            (item.email && item.email.toLowerCase().includes(searchTerm)) ||
+                            (item.position && item.position.toLowerCase().includes(searchTerm))
+                        );
+                    }
+
+                    if (filteredData.length === 0) {
+                        employeeContainer.style.display = 'none';
+                        noEmployeesMessage.style.display = 'block';
+                        return;
+                    }
+
+                    employeeContainer.style.display = 'flex';
+                    noEmployeesMessage.style.display = 'none';
+
+                    filteredData.sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
+                    filteredData.forEach(item => employeeContainer.appendChild(createCard(item)));
+                    loadingSpinner.style.display = 'none';
+                }
+
+                function createCard(item) {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-6 col-lg-4';
+                    const defaultPhoto = 'https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png';
+                    const photoUrl = item.photo || defaultPhoto;
+                    const role = item.type === 'transporter' ? 'Transporter' : 'Public';
+                    const status = item.status || 'N/A';
+                    const positionOrInfo = item.position || 'N/A';
+
+                    col.innerHTML = `
+                        <div class="card employee-card shadow-sm h-100" data-id="${item.id}" data-type="${item.type}">
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <img src="${photoUrl}" alt="${item.fullName || 'Unnamed'}" class="employee-image mb-2">
+                                    <h5 class="card-title mb-0">${item.fullName || 'Unnamed'}</h5>
+                                    <p class="text-muted">${positionOrInfo}</p>
+                                    <div class="d-flex justify-content-center gap-2 mb-2">
+                                        <span class="badge ${item.type === 'transporter' ? 'bg-primary' : 'bg-info'}">${role}</span>
+                                        <span class="badge ${status === 'active' ? 'bg-success' : status === 'inactive' ? 'bg-danger' : 'bg-warning'}">${status}</span>
+                                    </div>
+                                </div>
+                                <div class="card-text">
+                                    <p class="mb-1"><i class="fas fa-envelope me-2 text-muted"></i> ${item.email || 'N/A'}</p>
+                                    <p class="mb-1"><i class="fas fa-phone me-2 text-muted"></i> ${item.phone || 'N/A'}</p>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-transparent border-top-0 text-center">
+                                <button class="btn btn-sm btn-outline-success w-75 view-details" data-id="${item.id}" data-type="${item.type}">
+                                    <i class="fas fa-info-circle me-1"></i> View Details
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    col.querySelector('.view-details').addEventListener('click', () => viewDetails(item.id, item.type));
+                    return col;
+                }
+
+                function viewDetails(id, type) {
+                    selectedUserId = id;
+                    selectedUserType = type;
+                    const item = currentData.find(data => data.id === id && data.type === type);
+                    if (!item) return;
+
+                    const defaultPhoto = 'https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png';
+                    const photoUrl = item.photo || defaultPhoto;
+                    const joiningDate = item.joiningDate ? new Date(item.joiningDate).toLocaleDateString() : 'N/A';
+                    const address = normalizeAddress(item.address);
+
+                    document.getElementById('employeeDetailsContent').innerHTML = `
+                        <div class="text-center mb-4">
+                            <img src="${photoUrl}" alt="${item.fullName || 'Unnamed'}" class="employee-image mb-3" style="width:150px;height:150px;">
+                            <h4>${item.fullName || 'Unnamed'}</h4>
+                            <p class="text-muted">${item.position || 'N/A'}</p>
+                            <span class="badge ${item.type === 'transporter' ? 'bg-primary' : 'bg-info'}">${item.type === 'transporter' ? 'Transporter' : 'Public'}</span>
+                            <span class="badge ${item.status === 'active' ? 'bg-success' : item.status === 'inactive' ? 'bg-danger' : 'bg-warning'}">${item.status || 'N/A'}</span>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <h6 class="fw-bold">Email Address</h6>
+                                <p><i class="fas fa-envelope me-2 text-muted"></i> ${item.email || 'N/A'}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <h6 class="fw-bold">Phone Number</h6>
+                                <p><i class="fas fa-phone me-2 text-muted"></i> ${item.phone || 'N/A'}</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <h6 class="fw-bold">Joining Date</h6>
+                                <p><i class="fas fa-calendar me-2 text-muted"></i> ${joiningDate}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <h6 class="fw-bold">Address</h6>
+                                <p><i class="fas fa-map-marker-alt me-2 text-muted"></i> ${address || 'N/A'}</p>
+                            </div>
+                        </div>
+                    `;
+
+                    employeeDetailsModal.show();
+                }
+
+                async function addUser() {
+                    const userType = document.getElementById('employeeType').value;
+                    const fullName = document.getElementById('employeeName').value.trim();
+                    const email = document.getElementById('employeeEmail').value.trim();
+                    const phone = document.getElementById('employeePhone').value.trim();
+                    const position = document.getElementById('employeePosition').value || null;
+                    const status = document.getElementById('employeeStatus').value;
+                    const joiningDate = document.getElementById('employeeJoiningDate').value;
+                    const address = document.getElementById('employeeAddress').value.trim();
+                    const password = document.getElementById('employeePassword').value.trim();
+                    const photo = document.getElementById('employeePhoto').value.trim();
+
+                    if (!userType || !fullName || !email || !phone || !joiningDate || !address || !password || !status) {
+                        alert('Please fill in all required fields.');
+                        return;
+                    }
+
+                    try {
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                        const uid = userCredential.user.uid;
+
+                        const userData = {
+                            fullName,
+                            email,
+                            phone,
+                            ...(userType === 'transporter' && { position, status, role: 'transporter' }),
+                            ...(userType === 'public' && { status, role: 'public', position: '' }),
+                            joiningDate,
+                            address,
+                            photo: photo || null,
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                            uid
+                        };
+
+                        const specificRef = ref(db, `${userType}/${uid}`);
+                        const userRef = ref(db, `users/${uid}`);
+                        await Promise.all([
+                            set(specificRef, userData),
+                            set(userRef, userData)
+                        ]);
+
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal'));
+                        modal.hide();
+                        addEmployeeForm.reset();
+                        fetchData();
+                        alert(`${userType === 'transporter' ? 'Transporter' : 'Public user'} added successfully!`);
+                    } catch (error) {
+                        console.error("Error adding user:", error);
+                        alert(`Failed to add user: ${error.message}`);
+                    }
+                }
+
+                function populateEditForm(id, type) {
+                    const user = currentData.find(item => item.id === id && item.type === type);
+                    if (!user) return;
+
+                    document.getElementById('editEmployeeId').value = user.id;
+                    document.getElementById('editEmployeeName').value = user.fullName || '';
+                    document.getElementById('editEmployeeEmail').value = user.email || '';
+                    document.getElementById('editEmployeePhone').value = user.phone || '';
+                    document.getElementById('editEmployeePosition').value = user.position || '';
+                    document.getElementById('editEmployeeJoiningDate').value = user.joiningDate || '';
+                    document.getElementById('editEmployeeStatus').value = user.status || 'active';
+                    document.getElementById('editEmployeeAddress').value = normalizeAddress(user.address);
+                    document.getElementById('editEmployeePhoto').value = user.photo || '';
+
+                    document.getElementById('editEmployeePosition').parentElement.style.display = type === 'transporter' ? 'block' : 'none';
+                    document.getElementById('editEmployeeStatus').parentElement.style.display = 'block';
+
+                    employeeDetailsModal.hide();
+                    editEmployeeModal.show();
+                }
+
+                async function updateUser() {
+                    const id = document.getElementById('editEmployeeId').value;
+                    const user = currentData.find(item => item.id === id);
+                    const type = user.type;
+
+                    const fullName = document.getElementById('editEmployeeName').value.trim();
+                    const email = document.getElementById('editEmployeeEmail').value.trim();
+                    const phone = document.getElementById('editEmployeePhone').value.trim();
+                    const position = document.getElementById('editEmployeePosition').value || null;
+                    const status = document.getElementById('editEmployeeStatus').value;
+                    const joiningDate = document.getElementById('editEmployeeJoiningDate').value;
+                    const address = document.getElementById('editEmployeeAddress').value.trim();
+                    const photo = document.getElementById('editEmployeePhoto').value.trim();
+                    const password = document.getElementById('editEmployeePassword').value.trim();
+
+                    if (!fullName || !email || !phone || !joiningDate || !address || !status) {
+                        alert('Please fill in all required fields.');
+                        return;
+                    }
+
+                    const updatedUser = {
+                        fullName,
+                        email,
+                        phone,
+                        ...(type === 'transporter' && { position, status, role: 'transporter' }),
+                        ...(type === 'public' && { status, role: 'public', position: '' }),
+                        joiningDate,
+                        address,
+                        photo: photo || null,
+                        updatedAt: new Date().toISOString(),
+                        uid: id
+                    };
+
+                    const userRef = ref(db, `${type}/${id}`);
+                    const generalUserRef = ref(db, `users/${id}`);
+
+                    try {
+                        await Promise.all([
+                            update(userRef, updatedUser),
+                            update(generalUserRef, updatedUser)
+                        ]);
+                        if (email !== user.email || password) {
+                            alert('Email or password changes require server-side update. Please update via Firebase Console.');
+                        }
+
+                        editEmployeeModal.hide();
+                        fetchData();
+                        alert(`${type === 'transporter' ? 'Transporter' : 'Public user'} updated successfully!`);
+                    } catch (error) {
+                        console.error("Error updating user:", error);
+                        alert(`Failed to update user: ${error.message}`);
+                    }
+                }
+
+                async function deleteUser(id, type) {
+                    const userRef = ref(db, `${type}/${id}`);
+                    const generalUserRef = ref(db, `users/${id}`);
+
+                    try {
+                        await Promise.all([
+                            remove(userRef),
+                            remove(generalUserRef)
+                        ]);
+                        deleteConfirmModal.hide();
+                        fetchData();
+                        alert(`${type === 'transporter' ? 'Transporter' : 'Public user'} deleted successfully! Note: Authentication account not deleted.`);
+                    } catch (error) {
+                        console.error("Error deleting user:", error);
+                        alert(`Failed to delete user: ${error.message}`);
+                    }
+                }
+
+                function setupFormValidation() {
+                    const addInputs = document.querySelectorAll('#addEmployeeForm input, #addEmployeeForm select, #addEmployeeForm textarea');
+                    const editInputs = document.querySelectorAll('#editEmployeeForm input, #editEmployeeForm select, #editEmployeeForm textarea');
+
+                    addInputs.forEach(input => {
+                        input.addEventListener('input', function () {
+                            if (this.value.trim()) this.classList.remove('is-invalid');
+                        });
+                    });
+
+                    editInputs.forEach(input => {
+                        input.addEventListener('input', function () {
+                            if (this.value.trim()) this.classList.remove('is-invalid');
+                        });
+                    });
+
+                    const phoneInputs = [
+                        document.getElementById('employeePhone'),
+                        document.getElementById('editEmployeePhone')
+                    ];
+                    phoneInputs.forEach(phone => {
+                        if (phone) {
+                            phone.addEventListener('input', function () {
+                                this.value = this.value.replace(/[^0-9]/g, '');
+                            });
+                        }
+                    });
+                }
+
+                searchInput.addEventListener('input', renderData);
+                typeFilterButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        typeFilterButtons.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        currentFilter = btn.dataset.filter;
+                        renderData();
+                    });
+                });
+
+                saveEmployeeBtn.addEventListener('click', addUser);
+                updateEmployeeBtn.addEventListener('click', updateUser);
+                confirmDeleteBtn.addEventListener('click', () => deleteUser(selectedUserId, selectedUserType));
+                editEmployeeBtn.addEventListener('click', () => populateEditForm(selectedUserId, selectedUserType));
+                deleteEmployeeBtn.addEventListener('click', () => deleteConfirmModal.show());
+
+                employeeTypeSelect.addEventListener('change', () => {
+                    const isTransporter = employeeTypeSelect.value === 'transporter';
+                    document.getElementById('transporterFields').style.display = isTransporter ? 'flex' : 'none';
+                });
+
+                function handleError(error) {
+                    console.error("Error:", error);
+                    alert(`An error occurred: ${error.message}`);
+                    loadingSpinner.style.display = 'none';
+                }
+
+                setupFormValidation();
+            } catch (error) {
+                console.error("Initialization failed:", error);
+                alert("Failed to initialize user management page.");
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

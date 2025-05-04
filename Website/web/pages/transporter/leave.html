@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leave Management - BinXZer0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        :root {
+            --primary-color: #198754;
+            --primary-light: #60ad5e;
+            --primary-dark: #005005;
+            --secondary-color: #343a40;
+            --text-on-primary: #ffffff;
+            --accent-color: #ff8f00;
+            --success-color: #28a745;
+            --danger-color: #e53935;
+            --warning-color: #ffb74d;
+            --border-radius: 12px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+            --transition: all 0.3s ease;
+        }
+        
+
+        
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+        
+        .card-header {
+            border-bottom: none;
+            padding: 1.25rem 1.5rem;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            border: 1px solid #dee2e6;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.25);
+        }
+        
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #495057;
+        }
+        
+        .btn {
+            padding: 0.6rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        
+        .btn-success {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-success:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+        
+        .btn-outline-secondary {
+            color: #6c757d;
+            border-color: #ced4da;
+        }
+        
+        .btn-outline-secondary:hover {
+            background-color: #f8f9fa;
+            color: #495057;
+            transform: translateY(-2px);
+        }
+        
+        .table {
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+        
+        .table thead th {
+            background-color: #f8f9fa;
+            color: #495057;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+            padding: 0.85rem 1rem;
+        }
+        
+        .table tbody td {
+            padding: 1rem;
+            vertical-align: middle;
+        }
+        
+        .badge {
+            padding: 0.5rem 0.85rem;
+            border-radius: 50px;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+        
+        .progress {
+            height: 12px;
+            border-radius: 50px;
+            background-color: rgba(255,255,255,0.3);
+        }
+        
+        .progress-bar {
+            background-color: var(--text-on-primary);
+        }
+        
+        .card-section {
+            position: relative;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding: 1.5rem;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 280px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            border-radius: 50%;
+        }
+        
+        .leave-balance-card {
+            display: flex;
+            align-items: center;
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-light));
+            color: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .leave-balance-icon {
+            font-size: 2rem;
+            margin-right: 1.5rem;
+            background: rgba(255,255,255,0.2);
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        
+        .leave-balance-text {
+            flex-grow: 1;
+        }
+        
+        .leave-balance-text h4 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .leave-balance-text p {
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+        
+        .leave-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: var(--primary-light);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 1rem;
+        }
+        
+        .step-text {
+            font-size: 0.95rem;
+            color: #6c757d;
+        }
+        
+        .btn-slide {
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .btn-slide:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0;
+            background: rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            z-index: -1;
+        }
+        
+        .btn-slide:hover:after {
+            height: 100%;
+        }
+        
+        .tab-style {
+            display: flex;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 1.5rem;
+        }
+        
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            color: #6c757d;
+            font-weight: 500;
+            background: none;
+            border: none;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .tab-btn.active {
+            color: var(--primary-color);
+        }
+        
+        .tab-btn.active:after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: var(--primary-color);
+        }
+        
+        .leave-type-card {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .leave-type-card:hover {
+            border-color:  #7f00ad;
+            background-color: #f9f9f9;
+        }
+        
+        .leave-type-card.selected {
+            border-color: #7f00ad;
+            background-color: rgba(46, 125, 50, 0.05);
+        }
+        
+        .leave-type-card i {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-right: 1rem;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.4s ease forwards;
+        }
+        
+        .table tbody tr {
+            transition: all 0.2s ease;
+        }
+        
+        .table tbody tr:hover {
+            background-color: rgba(46, 125, 50, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <div id="navbarPlaceholder"></div>
+
+    <div class="container my-5 pt-5">
+        <!-- Leave Balance Card -->
+        <div class="leave-balance-card shadow-sm mb-4 fade-in">
+            <div class="leave-balance-icon">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="leave-balance-text">
+                <h4 id="leaveBalanceText">Loading...</h4>
+                <p>Annual Leave Balance</p>
+                <div class="progress" style="height: 12px;">
+                    <div id="leaveProgress" class="progress-bar" role="progressbar"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <div class="card shadow-sm fade-in">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-primary">
+                            <i class="fas fa-plane-departure me-2"></i>Leave Application
+                        </h5>
+                        <span class="badge bg-light text-primary">New Request</span>
+                    </div>
+                    
+                    <!-- Leave Type Selection -->
+                    <div class="card-section">
+                        <h6 class="mb-3">1. Select Leave Type</h6>
+                        <div class="row" id="leaveTypeSelector">
+                            <div class="col-6 col-md-4 mb-3">
+                                <div class="leave-type-card d-flex align-items-center" data-value="annual">
+                                    <i class="fas fa-umbrella-beach"></i>
+                                    <span>Annual Leave</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 mb-3">
+                                <div class="leave-type-card d-flex align-items-center" data-value="sick">
+                                    <i class="fas fa-heartbeat"></i>
+                                    <span>Sick Leave</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 mb-3">
+                                <div class="leave-type-card d-flex align-items-center" data-value="personal">
+                                    <i class="fas fa-user"></i>
+                                    <span>Personal Leave</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 mb-3">
+                                <div class="leave-type-card d-flex align-items-center" data-value="bereavement">
+                                    <i class="fas fa-heart"></i>
+                                    <span>Bereavement</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 mb-3">
+                                <div class="leave-type-card d-flex align-items-center" data-value="unpaid">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                    <span>Unpaid Leave</span>
+                                </div>
+                            </div>
+                            <input type="hidden" id="leaveType" required>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <form id="leaveApplicationForm" class="needs-validation" novalidate>
+                            <div class="row g-3">
+                                <!-- Duration Selection -->
+                                <div class="col-md-12 mb-3">
+                                    <h6 class="mb-3">2. Select Duration</h6>
+                                    <div class="btn-group w-100" role="group">
+                                        <input type="radio" class="btn-check" name="durationRadio" id="radioHalfDay" value="half" autocomplete="off">
+                                        <label class="btn btn-outline-secondary" for="radioHalfDay">Half Day</label>
+                                        
+                                        <input type="radio" class="btn-check" name="durationRadio" id="radioFullDay" value="full" autocomplete="off">
+                                        <label class="btn btn-outline-secondary" for="radioFullDay">Full Day</label>
+                                        
+                                        <input type="radio" class="btn-check" name="durationRadio" id="radioMultipleDays" value="multiple" autocomplete="off">
+                                        <label class="btn btn-outline-secondary" for="radioMultipleDays">Multiple Days</label>
+                                    </div>
+                                    <input type="hidden" id="leaveDuration" required>
+                                </div>
+                                
+                                <!-- Date Selection -->
+                                <div class="col-md-6">
+                                    <label for="startDate" class="form-label">Start Date <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="fas fa-calendar-day"></i></span>
+                                        <input type="date" class="form-control" id="startDate" min="" required>
+                                    </div>
+                                    <div class="invalid-feedback">Please select a start date.</div>
+                                </div>
+                                
+                                <div class="col-md-6" id="endDateContainer" style="display: none;">
+                                    <label for="endDate" class="form-label">End Date <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="fas fa-calendar-day"></i></span>
+                                        <input type="date" class="form-control" id="endDate" min="">
+                                    </div>
+                                    <div class="invalid-feedback">Please select an end date.</div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <label for="leaveReason" class="form-label">Reason <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="leaveReason" rows="3" placeholder="Please provide a reason for your leave" required></textarea>
+                                    <div class="invalid-feedback">Please provide a reason.</div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label for="contactInfo" class="form-label">Emergency Contact <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="fas fa-phone"></i></span>
+                                        <input type="tel" class="form-control" id="contactInfo" pattern="[0-9]{10}" placeholder="10-digit phone number" required>
+                                    </div>
+                                    <div class="invalid-feedback">Please provide a valid 10-digit phone number.</div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <label for="handoverDetails" class="form-label">Handover Details</label>
+                                    <textarea class="form-control" id="handoverDetails" rows="2" placeholder="Tasks to be handled during your absence (optional)"></textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between gap-2 mt-4">
+                                <button type="reset" class="btn btn-outline-secondary btn-slide">
+                                    <i class="fas fa-times me-1"></i>Reset
+                                </button>
+                                <button type="submit" class="btn btn-success btn-slide">
+                                    <i class="fas fa-paper-plane me-1"></i>Submit Request
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 mt-4 mt-lg-0">
+                <div class="card shadow-sm fade-in">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0 text-primary">
+                            <i class="fas fa-info-circle me-2"></i>Application Guide
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="leave-step">
+                            <div class="step-number">1</div>
+                            <div class="step-text">Select your leave type from the available options</div>
+                        </div>
+                        <div class="leave-step">
+                            <div class="step-number">2</div>
+                            <div class="step-text">Choose the duration (half day, full day, or multiple days)</div>
+                        </div>
+                        <div class="leave-step">
+                            <div class="step-number">3</div>
+                            <div class="step-text">Select the date(s) for your leave</div>
+                        </div>
+                        <div class="leave-step">
+                            <div class="step-number">4</div>
+                            <div class="step-text">Provide a reason and emergency contact information</div>
+                        </div>
+                        <div class="leave-step">
+                            <div class="step-number">5</div>
+                            <div class="step-text">Add handover details if necessary</div>
+                        </div>
+                        
+                        <div class="alert alert-info mt-4">
+                            <i class="fas fa-bell me-2"></i>
+                            Leave requests are typically processed within 24-48 hours.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm fade-in">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 text-primary"><i class="fas fa-history me-2"></i>Leave History</h5>
+                        <div class="d-flex align-items-center">
+                            <div id="loadingSpinner" class="spinner-border spinner-border-sm text-primary d-none me-2" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-filter me-1"></i>Filter
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filterDropdown">
+                                    <li><a class="dropdown-item filter-status" href="#" data-status="all">All Requests</a></li>
+                                    <li><a class="dropdown-item filter-status" href="#" data-status="pending">Pending</a></li>
+                                    <li><a class="dropdown-item filter-status" href="#" data-status="approved">Approved</a></li>
+                                    <li><a class="dropdown-item filter-status" href="#" data-status="rejected">Rejected</a></li>
+                                    <li><a class="dropdown-item filter-status" href="#" data-status="cancelled">Cancelled</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Reference</th>
+                                        <th>Type</th>
+                                        <th>From</th>
+                                        <th>To</th>
+                                        <th>Days</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaveHistoryBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div id="footerPlaceholder"></div>
+
+    <!-- Scripts -->
+     
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-database-compat.js"></script>
+    <script src="/assets/js/apikeys.js"></script>
+    <script type="module" src="/assets/js/logout-ui.js"></script>
+    <!-- Bootstrap Bundle JS (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Utility Functions
+        const loadTemplate = async (url, placeholderId) => {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Failed to load ${url}`);
+                const html = await response.text();
+                document.getElementById(placeholderId).innerHTML = html;
+                return true;
+            } catch (error) {
+                console.error(`${placeholderId} didn't load:`, error);
+                return false;
+            }
+        };
+
+        const showNotification = (type, message) => {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show notification`;
+            alert.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle me-2"></i>${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+            document.body.appendChild(alert);
+            setTimeout(() => {
+                alert.classList.remove('show');
+                setTimeout(() => alert.remove(), 500);
+            }, 5000);
+        };
+
+        const showLoading = () => document.getElementById('loadingSpinner').classList.remove('d-none');
+        const hideLoading = () => document.getElementById('loadingSpinner').classList.add('d-none');
+
+        // Calculate Days
+        const calculateDays = (start, end, duration) => {
+            if (duration === 'half') return 0.5;
+            if (duration === 'full') return 1;
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            return Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        };
+
+        // Initialize App
+        const init = async () => {
+            // Load templates concurrently
+            const [navbarLoaded] = await Promise.all([
+                loadTemplate('/assets/templates/tranav.html', 'navbarPlaceholder'),
+                loadTemplate('/assets/templates/bottomnav.html', 'footerPlaceholder')
+            ]);
+
+            // Attach logout listener
+            if (navbarLoaded) {
+                const logoutButton = document.getElementById('logout-link');
+                if (logoutButton) {
+                    logoutButton.addEventListener('click', window.showLogoutModal);
+                    logoutButton.addEventListener('mouseenter', () => logoutButton.querySelector('i')?.classList.add('fa-bounce'));
+                    logoutButton.addEventListener('mouseleave', () => logoutButton.querySelector('i')?.classList.remove('fa-bounce'));
+                } else {
+                    console.error('Logout button not found after navbar load.');
+                }
+            }
+
+            // Firebase setup
+            window.app = firebase.initializeApp(window.apiKeys.firebase);
+            const db = firebase.database();
+            const auth = firebase.auth();
+
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').min = today;
+            document.getElementById('endDate').min = today;
+
+            // Auth check
+            let currentUser = null;
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    loadUserDetails();
+                    loadLeaveHistory();
+                } else {
+                    window.location.href = '/login.html';
+                }
+            });
+
+            // Leave Type Selection
+            document.querySelectorAll('.leave-type-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    document.querySelectorAll('.leave-type-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    document.getElementById('leaveType').value = card.dataset.value;
+                });
+            });
+            
+            // Duration Radio Buttons
+            document.querySelectorAll('input[name="durationRadio"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    const endDateContainer = document.getElementById('endDateContainer');
+                    const endDateInput = document.getElementById('endDate');
+                    document.getElementById('leaveDuration').value = e.target.value;
+                    endDateContainer.style.display = e.target.value === 'multiple' ? 'block' : 'none';
+                    endDateInput.required = e.target.value === 'multiple';
+                });
+            });
+
+            // Form validation
+            const form = document.getElementById('leaveApplicationForm');
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const leaveType = document.getElementById('leaveType').value;
+                if (!leaveType) {
+                    showNotification('danger', 'Please select a leave type');
+                    return;
+                }
+                const leaveDuration = document.getElementById('leaveDuration').value;
+                if (!leaveDuration) {
+                    showNotification('danger', 'Please select a duration');
+                    return;
+                }
+                if (!form.checkValidity()) {
+                    event.stopPropagation();
+                    form.classList.add('was-validated');
+                    return;
+                }
+                submitLeaveApplication();
+            });
+
+            // Form submission
+            async function submitLeaveApplication() {
+                if (!currentUser) {
+                    showNotification('danger', 'User not authenticated');
+                    return;
+                }
+
+                const formData = {
+                    employeeId: currentUser.uid,
+                    referenceId: `LV-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+                    leaveType: document.getElementById('leaveType').value,
+                    duration: document.getElementById('leaveDuration').value,
+                    startDate: document.getElementById('startDate').value,
+                    endDate: document.getElementById('leaveDuration').value === 'multiple' ? document.getElementById('endDate').value : document.getElementById('startDate').value,
+                    reason: document.getElementById('leaveReason').value,
+                    contactInfo: document.getElementById('contactInfo').value,
+                    handoverDetails: document.getElementById('handoverDetails').value,
+                    status: 'pending',
+                    appliedAt: new Date().toISOString(),
+                    isVisibleToAdmin: true
+                };
+
+                if (formData.duration === 'multiple' && new Date(formData.startDate) > new Date(formData.endDate)) {
+                    showNotification('danger', 'End date must be after start date');
+                    return;
+                }
+
+                try {
+                    await db.ref('leaves').push(formData);
+                    await db.ref('admin/notifications').push({
+                        type: 'leave_request',
+                        employeeId: currentUser.uid,
+                        leaveId: formData.referenceId,
+                        message: `New leave request from Transporter ${currentUser.uid}`,
+                        timestamp: new Date().toISOString(),
+                        read: false
+                    });
+                    showNotification('success', 'Leave application submitted successfully');
+                    form.reset();
+                    form.classList.remove('was-validated');
+                    document.getElementById('endDateContainer').style.display = 'none';
+                    document.getElementById('leaveType').value = '';
+                    document.getElementById('leaveDuration').value = '';
+                    document.querySelectorAll('.leave-type-card').forEach(c => c.classList.remove('selected'));
+                    loadLeaveHistory();
+                    loadUserDetails(); // Refresh balance after submission
+                } catch (error) {
+                    console.error('Error submitting leave application:', error);
+                    showNotification('danger', 'Failed to submit leave application');
+                }
+            }
+
+            // Load User Details
+            async function loadUserDetails() {
+                if (!currentUser) return;
+                
+                try {
+                    showLoading();
+                    const transporterRef = db.ref(`transporters/${currentUser.uid}`);
+                    const snapshot = await transporterRef.once('value');
+                    let total = 20;
+                    let used = 0;
+
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        total = data.totalLeaves || total;
+
+                        const leaveSnapshot = await db.ref('leaves')
+                            .orderByChild('employeeId')
+                            .equalTo(currentUser.uid)
+                            .once('value');
+                        
+                        if (leaveSnapshot.exists()) {
+                            leaveSnapshot.forEach(child => {
+                                const leave = child.val();
+                                if (leave.status === 'approved') {
+                                    used += calculateDays(leave.startDate, leave.endDate, leave.duration);
+                                }
+                            });
+                        }
+
+                        const remaining = total - used;
+                        const percentage = (remaining / total) * 100;
+
+                        const leaveBalanceText = document.getElementById('leaveBalanceText');
+                        const leaveProgress = document.getElementById('leaveProgress');
+
+                        leaveBalanceText.textContent = `${remaining}/${total} days`;
+                        leaveProgress.style.width = `${percentage}%`;
+                        leaveProgress.setAttribute('aria-valuenow', percentage);
+
+                        if (!data.totalLeaves) {
+                            await transporterRef.update({ totalLeaves: total });
+                        }
+                    } else {
+                        await transporterRef.set({
+                            email: currentUser.email,
+                            totalLeaves: total
+                        });
+                        const remaining = total - used;
+                        const percentage = (remaining / total) * 100;
+
+                        document.getElementById('leaveBalanceText').textContent = `${remaining}/${total} days`;
+                        document.getElementById('leaveProgress').style.width = `${percentage}%`;
+                        document.getElementById('leaveProgress').setAttribute('aria-valuenow', percentage);
+                    }
+
+                    if ((total - used) < 5) {
+                        document.getElementById('leaveBalanceText').classList.add('text-warning');
+                    } else {
+                        document.getElementById('leaveBalanceText').classList.remove('text-warning');
+                    }
+                } catch (error) {
+                    console.error('Error loading user details:', error);
+                    document.getElementById('leaveBalanceText').textContent = 'Error loading';
+                } finally {
+                    hideLoading();
+                }
+            }
+
+            // Load Leave History
+            async function loadLeaveHistory(statusFilter = 'all') {
+                if (!currentUser) return;
+                
+                try {
+                    showLoading();
+                    const snapshot = await db.ref('leaves').orderByChild('employeeId').equalTo(currentUser.uid).once('value');
+                    const leaves = snapshot.val();
+                    
+                    const leaveHistoryBody = document.getElementById('leaveHistoryBody');
+                    leaveHistoryBody.innerHTML = '';
+                    
+                    if (!leaves) {
+                        leaveHistoryBody.innerHTML = `
+                            <tr>
+                                <td colspan="7" class="text-center py-4">No leave requests found</td>
+                            </tr>
+                        `;
+                        return;
+                    }
+                    
+                    const leavesArray = Object.entries(leaves).map(([key, leave]) => ({
+                        id: key,
+                        ...leave
+                    })).sort((a, b) => new Date(b.appliedAt) - new Date(a.appliedAt));
+                    
+                    const filteredLeaves = statusFilter === 'all' 
+                        ? leavesArray 
+                        : leavesArray.filter(leave => leave.status === statusFilter);
+                    
+                    if (filteredLeaves.length === 0) {
+                        leaveHistoryBody.innerHTML = `
+                            <tr>
+                                <td colspan="7" class="text-center py-4">No ${statusFilter} leave requests found</td>
+                            </tr>
+                        `;
+                        return;
+                    }
+                    
+                    filteredLeaves.forEach(leave => {
+                        const days = calculateDays(leave.startDate, leave.endDate, leave.duration);
+                        const startFormatted = new Date(leave.startDate).toLocaleDateString();
+                        const endFormatted = new Date(leave.endDate).toLocaleDateString();
+                        let statusBadgeClass = 'bg-secondary';
+                        if (leave.status === 'approved') statusBadgeClass = 'bg-success';
+                        if (leave.status === 'rejected') statusBadgeClass = 'bg-danger';
+                        if (leave.status === 'pending') statusBadgeClass = 'bg-warning text-dark';
+                        if (leave.status === 'cancelled') statusBadgeClass = 'bg-secondary';
+                        
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${leave.referenceId}</td>
+                            <td>${leave.leaveType.charAt(0).toUpperCase() + leave.leaveType.slice(1)}</td>
+                            <td>${startFormatted}</td>
+                            <td>${leave.duration === 'multiple' ? endFormatted : '-'}</td>
+                            <td>${days}</td>
+                            <td><span class="badge ${statusBadgeClass}">${leave.status.charAt(0).toUpperCase() + leave.status.slice(1)}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary me-1 view-details" data-id="${leave.id}" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                ${leave.status === 'pending' ? `
+                                <button class="btn btn-sm btn-outline-danger cancel-leave" data-id="${leave.id}" title="Cancel Request">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                ` : ''}
+                            </td>
+                        `;
+                        leaveHistoryBody.appendChild(row);
+                    });
+                    
+                    attachLeaveHistoryListeners();
+                } catch (error) {
+                    console.error('Error loading leave history:', error);
+                    document.getElementById('leaveHistoryBody').innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center py-4">Error loading leave history</td>
+                        </tr>
+                    `;
+                } finally {
+                    hideLoading();
+                }
+            }
+            
+            // Attach event listeners to leave history buttons
+            function attachLeaveHistoryListeners() {
+                document.querySelectorAll('.view-details').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        const leaveId = e.currentTarget.dataset.id;
+                        
+                        try {
+                            const snapshot = await db.ref(`leaves/${leaveId}`).once('value');
+                            const leaveData = snapshot.val();
+                            
+                            if (leaveData) {
+                                const modal = document.createElement('div');
+                                modal.classList.add('modal', 'fade');
+                                modal.id = 'leaveDetailsModal';
+                                modal.tabIndex = '-1';
+                                modal.setAttribute('aria-hidden', 'true');
+                                
+                                const startDate = new Date(leaveData.startDate).toLocaleDateString();
+                                const endDate = new Date(leaveData.endDate).toLocaleDateString();
+                                const appliedDate = new Date(leaveData.appliedAt).toLocaleString();
+                                
+                                modal.innerHTML = `
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Leave Request Details</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <strong>Reference ID:</strong> ${leaveData.referenceId}
+                                                </div>
+                                                <div class="mb-3">
+                                                    <strong>Type:</strong> ${leaveData.leaveType.charAt(0).toUpperCase() + leaveData.leaveType.slice(1)}
+                                                </div>
+                                                <div class="mb-3">
+                                                    <strong>Duration:</strong> ${leaveData.duration === 'half' ? 'Half Day' : leaveData.duration === 'full' ? 'Full Day' : 'Multiple Days'}
+                                                </div>
+                                                <div class="mb-3">
+                                                    <strong>Period:</strong> ${startDate} ${leaveData.duration === 'multiple' ? `to ${endDate}` : ''}
+                                                </div>
+                                                <div class="mb-3">
+                                                    <strong>Status:</strong>
+                                                    <span class="badge ${leaveData.status === 'approved' ? 'bg-success' : leaveData.status === 'rejected' ? 'bg-danger' : leaveData.status === 'pending' ? 'bg-warning text-dark' : 'bg-secondary'}">
+                                                        ${leaveData.status.charAt(0).toUpperCase() + leaveData.status.slice(1)}
+                                                    </span>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <strong>Reason:</strong>
+                                                    <p class="mt-1">${leaveData.reason}</p>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <strong>Emergency Contact:</strong> ${leaveData.contactInfo}
+                                                </div>
+                                                ${leaveData.handoverDetails ? `
+                                                <div class="mb-3">
+                                                    <strong>Handover Details:</strong>
+                                                    <p class="mt-1">${leaveData.handoverDetails}</p>
+                                                </div>
+                                                ` : ''}
+                                                <div class="mb-0">
+                                                    <strong>Applied On:</strong> ${appliedDate}
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                                
+                                document.body.appendChild(modal);
+                                const modalInstance = new bootstrap.Modal(modal);
+                                modalInstance.show();
+                                modal.addEventListener('hidden.bs.modal', () => modal.remove());
+                            }
+                        } catch (error) {
+                            console.error('Error loading leave details:', error);
+                            showNotification('danger', 'Failed to load leave details');
+                        }
+                    });
+                });
+                
+                document.querySelectorAll('.cancel-leave').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        if (!confirm('Are you sure you want to cancel this leave request?')) return;
+                        
+                        const leaveId = e.currentTarget.dataset.id;
+                        
+                        try {
+                            await db.ref(`leaves/${leaveId}`).update({
+                                status: 'cancelled',
+                                cancelledAt: new Date().toISOString()
+                            });
+                            showNotification('success', 'Leave request cancelled successfully');
+                            loadLeaveHistory();
+                            loadUserDetails(); // Refresh balance after cancellation
+                        } catch (error) {
+                            console.error('Error cancelling leave request:', error);
+                            showNotification('danger', 'Failed to cancel leave request');
+                        }
+                    });
+                });
+            }
+            
+            // Filter leave history by status
+            document.querySelectorAll('.filter-status').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const status = e.currentTarget.dataset.status;
+                    loadLeaveHistory(status);
+                    const filterDropdown = document.getElementById('filterDropdown');
+                    filterDropdown.innerHTML = `<i class="fas fa-filter me-1"></i>${status.charAt(0).toUpperCase() + status.slice(1)}`;
+                });
+            });
+        };
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

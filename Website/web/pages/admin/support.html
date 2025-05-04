@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - BinXZer0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        .content-container {background-color: white;border-radius: 10px;padding: 30px;margin-top: 50px;box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);}
+        .h1 {font-weight: bold;color: #333;margin-bottom: 25px;}
+        .tab-filter {width: 100%;margin-bottom: 20px;display: flex;border-radius: 6px;overflow: hidden;}
+        .tab-filter button {flex: 1;padding: 12px;border: none;background-color: #f5f5f5;font-weight: 500;transition: all 0.3s;text-align: center;}
+        .tab-filter button.active {background-color: #1e8449;color: white;}
+        .search-bar {margin: 20px 0;flex: 2;}
+        .search-bar input {padding: 10px 20px;border-radius: 6px;border: 1px solid #ddd;width: 100%;}
+        .filter-row {display: flex;gap: 20px;align-items: center;margin-bottom: 20px;}
+        .sub-filter {display: flex;border-radius: 6px;overflow: hidden;flex: 1;}
+        .sub-filter button {padding: 8px 25px;border: none;background-color: #f5f5f5;font-weight: 500;transition: all 0.3s;}
+        .sub-filter button.active {background-color: #666;color: white;}
+        .sub-filter button:last-child.active {background-color: #28a745;}
+        .modal-content {border-radius: 10px;box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);border: none;}
+        .modal-header {background-color: #1e8449;color: white;border-top-left-radius: 10px;border-top-right-radius: 10px;padding: 15px 20px;display: flex;justify-content: space-between;align-items: center;}
+        .modal-title {font-size: 1.5rem;font-weight: 600;}
+        .modal-body {padding: 25px;background-color: #f8f9fa;}
+        .modal-body p {margin: 10px 0;font-size: 1rem;color: #333;}
+        .modal-body small {font-weight: 500;color: #555;}
+        .modal-footer {border-top: none;padding: 15px 20px;background-color: #fff;border-bottom-left-radius: 10px;border-bottom-right-radius: 10px;justify-content: flex-end;}
+        .btn-group {display: flex;gap: 10px;}
+        .btn {padding: 8px 20px;font-weight: 500;border-radius: 5px;}
+        .btn-outline-primary.me-2 {margin-right: 0;}
+        .btn-danger.me-2 {margin-right: 0;}
+        .btn-close {background: none;border: none;font-size: 1.5rem;color: white;}
+        .message-card {border: 1px solid #e9ecef;border-radius: 8px;transition: box-shadow 0.3s;}
+        .message-card:hover {box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);}
+    </style>
+</head>
+<body>
+    <header id="nav-container"></header>
+
+    <div class="container">
+        <div class="content-container">
+            <h1>Contact Messages</h1>
+            
+            <!-- Primary Filter (User Type) -->
+            <div class="tab-filter">
+                <button id="filterAll" class="active">ALL</button>
+                <button id="filterTransporters">TRANSPORTERS</button>
+                <button id="filterPublic">PUBLIC</button>
+                <button id="filterUnregistered">UNREGISTERED</button>
+            </div>
+            
+            <!-- Search Bar and Sub Filter Row -->
+            <div class="filter-row">
+                <div class="search-bar">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search by name, email, or subject...">
+                </div>
+                <div class="sub-filter">
+                    <button id="filterAllStatus" class="active">ALL</button>
+                    <button id="filterResolved">RESOLVED</button>
+                    <button id="filterUnresolved">UNRESOLVED</button>
+                </div>
+            </div>
+            
+            <!-- Message Container -->
+            <div id="messageContainer" class="row g-4 mt-3">
+                <div class="col-12 text-center" id="loadingMessages">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading messages...</p>
+                </div>
+            </div>
+            
+            <!-- No Messages Display -->
+            <div id="noMessages" class="text-center py-5 d-none">
+                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                <h3>No messages yet</h3>
+                <p>When customers send contact messages, they will appear here.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Message Modal -->
+    <div class="modal fade" id="messageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalSubject">Message Title</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <small>From:</small>
+                        <p class="fw-bold" id="modalFrom">Name (email@example.com)</p>
+                    </div>
+                    <div class="mb-4">
+                        <small>Date:</small>
+                        <p id="modalDate">January 1, 2023 12:00 PM</p>
+                    </div>
+                    <div class="mb-4">
+                        <small>Message:</small>
+                        <div id="modalMessage" class="p-3 bg-light rounded" style="min-height: 150px; white-space: pre-wrap;">
+                            Message content here.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-success" id="markCompletedBtn">Already Completed</button>
+                        <button type="button" class="btn btn-outline-primary me-2" id="replyBtn"><i class="fas fa-reply me-1"></i> Reply via Email</button>
+                        <button type="button" class="btn btn-danger me-2" id="deleteBtn"><i class="fas fa-trash me-1"></i> Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer id="footer-container"></footer>
+
+    <script src="/assets/js/apikeys.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/assets/js/logout-ui.js" type="module"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+        import { getDatabase, ref, onValue, remove, update } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+        async function init() {
+            try {
+                await Promise.all([
+                    fetch('/assets/templates/adminnav.html').then(res => res.text()).then(data => document.getElementById('nav-container').innerHTML = data),
+                    fetch('/assets/templates/bottomnav.html').then(res => res.text()).then(data => document.getElementById('footer-container').innerHTML = data)
+                ]);
+
+                const app = initializeApp(window.apiKeys.firebase);
+                const auth = getAuth(app);
+                const db = getDatabase(app);
+                const messagesRef = ref(db, 'contactMessages');
+                const usersRef = ref(db, 'users');
+
+                let currentUserTypeFilter = 'all';
+                let currentStatusFilter = 'all';
+                const messageContainer = document.getElementById('messageContainer');
+                const loadingMessages = document.getElementById('loadingMessages');
+                const noMessages = document.getElementById('noMessages');
+                const filterAll = document.getElementById('filterAll');
+                const filterTransporters = document.getElementById('filterTransporters');
+                const filterPublic = document.getElementById('filterPublic');
+                const filterUnregistered = document.getElementById('filterUnregistered');
+                const filterAllStatus = document.getElementById('filterAllStatus');
+                const filterResolved = document.getElementById('filterResolved');
+                const filterUnresolved = document.getElementById('filterUnresolved');
+                const searchInput = document.getElementById('searchInput');
+                const messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+                const modalSubject = document.getElementById('modalSubject');
+                const modalFrom = document.getElementById('modalFrom');
+                const modalDate = document.getElementById('modalDate');
+                const modalMessage = document.getElementById('modalMessage');
+                const replyBtn = document.getElementById('replyBtn');
+                const deleteBtn = document.getElementById('deleteBtn');
+                const markCompletedBtn = document.getElementById('markCompletedBtn');
+
+                let usersCache = {};
+
+                onAuthStateChanged(auth, (user) => {
+                    if (!user) {
+                        window.location.href = '/login.html';
+                    } else {
+                        loadUsers();
+                        loadMessages();
+                    }
+                });
+
+                function loadUsers() {
+                    onValue(usersRef, (snapshot) => {
+                        usersCache = {};
+                        if (snapshot.exists()) {
+                            snapshot.forEach((childSnapshot) => {
+                                const user = childSnapshot.val();
+                                usersCache[user.email] = user.role.toLowerCase();
+                            });
+                        }
+                    }, { onlyOnce: true });
+                }
+
+                function getUserRole(email) {
+                    if (usersCache[email]) {
+                        return usersCache[email];
+                    }
+                    return 'unregistered';
+                }
+
+                function loadMessages() {
+                    messageContainer.innerHTML = '';
+                    messageContainer.appendChild(loadingMessages);
+
+                    onValue(messagesRef, (snapshot) => {
+                        loadingMessages.remove();
+                        if (!snapshot.exists()) {
+                            noMessages.classList.remove('d-none');
+                            return;
+                        }
+
+                        noMessages.classList.add('d-none');
+                        messageContainer.innerHTML = '';
+                        const messages = [];
+                        snapshot.forEach((childSnapshot) => {
+                            const message = childSnapshot.val();
+                            message.id = childSnapshot.key;
+                            messages.push(message);
+                        });
+                        messages.sort((a, b) => b.timestamp - a.timestamp);
+
+                        let filteredMessages = messages;
+
+                        // Apply main filter (user type)
+                        if (currentUserTypeFilter !== 'all') {
+                            filteredMessages = filteredMessages.filter(msg => getUserRole(msg.email) === currentUserTypeFilter);
+                        }
+
+                        // Apply sub-filter (status)
+                        if (currentStatusFilter === 'resolved') {
+                            filteredMessages = filteredMessages.filter(msg => msg.status === 'read');
+                        } else if (currentStatusFilter === 'unresolved') {
+                            filteredMessages = filteredMessages.filter(msg => msg.status === 'unread');
+                        }
+
+                        // Apply search filter
+                        const searchTerm = searchInput.value.toLowerCase().trim();
+                        if (searchTerm) {
+                            filteredMessages = filteredMessages.filter(msg =>
+                                msg.name.toLowerCase().includes(searchTerm) ||
+                                msg.email.toLowerCase().includes(searchTerm) ||
+                                (msg.subject || '').toLowerCase().includes(searchTerm)
+                            );
+                        }
+
+                        if (filteredMessages.length === 0) {
+                            let emptyMessage = '';
+                            if (currentUserTypeFilter === 'all' && currentStatusFilter === 'all' && !searchTerm) {
+                                noMessages.classList.remove('d-none');
+                                return;
+                            } else if (currentUserTypeFilter === 'transporter') {
+                                emptyMessage = `
+                                    <div class="col-12 text-center py-5">
+                                        <i class="fas fa-truck fa-3x text-muted mb-3"></i>
+                                        <h3>No ${currentStatusFilter === 'all' ? '' : currentStatusFilter} messages from transporters</h3>
+                                        <p>No ${currentStatusFilter === 'all' ? '' : currentStatusFilter} messages from transporters yet.</p>
+                                    </div>
+                                `;
+                            } else if (currentUserTypeFilter === 'public') {
+                                emptyMessage = `
+                                    <div class="col-12 text-center py-5">
+                                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                        <h3>No ${currentStatusFilter === 'all' ? '' : currentStatusFilter} messages from public users</h3>
+                                        <p>No ${currentStatusFilter === 'all' ? '' : currentStatusFilter} messages from public users yet.</p>
+                                    </div>
+                                `;
+                            } else if (currentUserTypeFilter === 'unregistered') {
+                                emptyMessage = `
+                                    <div class="col-12 text-center py-5">
+                                        <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                                        <h3>No ${currentStatusFilter === 'all' ? '' : currentStatusFilter} messages from unregistered users</h3>
+                                        <p>No ${currentStatusFilter === 'all' ? '' : currentStatusFilter} messages from unregistered users yet.</p>
+                                    </div>
+                                `;
+                            } else if (currentStatusFilter === 'unresolved') {
+                                emptyMessage = `
+                                    <div class="col-12 text-center py-5">
+                                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                        <h3>No unresolved messages</h3>
+                                        <p>You've resolved all messages for this user type. Good job!</p>
+                                    </div>
+                                `;
+                            }
+                            messageContainer.innerHTML = emptyMessage;
+                            return;
+                        }
+
+                        filteredMessages.forEach((message) => {
+                            createMessageCard(message);
+                        });
+                    });
+                }
+
+                function createMessageCard(message) {
+                    const date = new Date(message.timestamp);
+                    const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                    const messageCard = document.createElement('div');
+                    messageCard.className = 'col-md-6 col-lg-4';
+                    messageCard.innerHTML = `
+                        <div class="card message-card ${message.status === 'unread' ? 'unread' : 'read'}" data-id="${message.id}">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span class="badge ${message.status === 'unread' ? 'bg-success' : 'bg-secondary'}">${message.status}</span>
+                                <small class="text-muted">${formattedDate}</small>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">${message.subject || 'No Subject'}</h5>
+                                <h6 class="card-subtitle mb-2 text-muted">${message.name} <small>(${message.email})</small></h6>
+                                <p class="card-text">${message.message.length > 100 ? message.message.substring(0, 100) + '...' : message.message}</p>
+                            </div>
+                            <div class="card-footer">
+                                <button class="btn btn-sm btn-primary view-message"><i class="fas fa-eye"></i></button>
+                                <button class="btn btn-sm btn-outline-danger float-end delete-message"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `;
+                    messageContainer.appendChild(messageCard);
+
+                    messageCard.querySelector('.view-message').addEventListener('click', () => viewMessage(message));
+                    messageCard.querySelector('.delete-message').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (confirm('Are you sure you want to delete this message?')) {
+                            deleteMessage(message.id);
+                        }
+                    });
+                }
+
+                function viewMessage(message) {
+                    modalSubject.textContent = message.subject || 'No Subject';
+                    modalFrom.textContent = `${message.name} (${message.email})`;
+                    const date = new Date(message.timestamp);
+                    modalDate.textContent = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                    modalMessage.textContent = message.message;
+
+                    replyBtn.onclick = () => {
+                        window.open(`mailto:${message.email}?subject=Re: ${message.subject || 'Your message to BinXZer0'}`);
+                    };
+
+                    deleteBtn.onclick = () => {
+                        if (confirm('Are you sure you want to delete this message?')) {
+                            deleteMessage(message.id);
+                            messageModal.hide();
+                        }
+                    };
+
+                    markCompletedBtn.onclick = () => {
+                        if (message.status === 'unread') {
+                            update(ref(db, `contactMessages/${message.id}`), { status: 'read' })
+                                .then(() => {
+                                    showAlert('success', 'Message marked as completed!');
+                                    messageModal.hide();
+                                    loadMessages();
+                                })
+                                .catch((error) => {
+                                    showAlert('danger', 'Error marking as completed: ' + error.message);
+                                });
+                        } else {
+                            showAlert('info', 'Message is already completed.');
+                            messageModal.hide();
+                        }
+                    };
+
+                    markCompletedBtn.disabled = message.status === 'read';
+                    markCompletedBtn.textContent = message.status === 'read' ? 'Already Completed' : 'Mark as Completed';
+
+                    messageModal.show();
+                }
+
+                function deleteMessage(id) {
+                    remove(ref(db, `contactMessages/${id}`))
+                        .then(() => {
+                            showAlert('success', 'Message deleted successfully!');
+                        })
+                        .catch((error) => {
+                            showAlert('danger', 'Error deleting message: ' + error.message);
+                        });
+                }
+
+                function showAlert(type, message) {
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                    alertDiv.role = 'alert';
+                    alertDiv.innerHTML = `
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    document.querySelector('.content-container').insertBefore(alertDiv, document.querySelector('.content-container').firstChild);
+                    setTimeout(() => {
+                        alertDiv.classList.remove('show');
+                        setTimeout(() => alertDiv.remove(), 500);
+                    }, 3000);
+                }
+
+                function resetUserTypeFilters() {
+                    const buttons = [filterAll, filterTransporters, filterPublic, filterUnregistered];
+                    buttons.forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                }
+
+                function resetStatusFilters() {
+                    const buttons = [filterAllStatus, filterResolved, filterUnresolved];
+                    buttons.forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                }
+
+                filterAll.addEventListener('click', () => {
+                    currentUserTypeFilter = 'all';
+                    resetUserTypeFilters();
+                    filterAll.classList.add('active');
+                    loadMessages();
+                });
+
+                filterTransporters.addEventListener('click', () => {
+                    currentUserTypeFilter = 'transporter';
+                    resetUserTypeFilters();
+                    filterTransporters.classList.add('active');
+                    loadMessages();
+                });
+
+                filterPublic.addEventListener('click', () => {
+                    currentUserTypeFilter = 'public';
+                    resetUserTypeFilters();
+                    filterPublic.classList.add('active');
+                    loadMessages();
+                });
+
+                filterUnregistered.addEventListener('click', () => {
+                    currentUserTypeFilter = 'unregistered';
+                    resetUserTypeFilters();
+                    filterUnregistered.classList.add('active');
+                    loadMessages();
+                });
+
+                filterAllStatus.addEventListener('click', () => {
+                    currentStatusFilter = 'all';
+                    resetStatusFilters();
+                    filterAllStatus.classList.add('active');
+                    loadMessages();
+                });
+
+                filterResolved.addEventListener('click', () => {
+                    currentStatusFilter = 'resolved';
+                    resetStatusFilters();
+                    filterResolved.classList.add('active');
+                    loadMessages();
+                });
+
+                filterUnresolved.addEventListener('click', () => {
+                    currentStatusFilter = 'unresolved';
+                    resetStatusFilters();
+                    filterUnresolved.classList.add('active');
+                    loadMessages();
+                });
+
+                searchInput.addEventListener('input', () => {
+                    loadMessages();
+                });
+            } catch (error) {
+                console.error("Initialization failed:", error);
+                showAlert('danger', 'Failed to initialize application.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

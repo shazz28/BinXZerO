@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nearest Region - BinXZer0</title>
+    <link rel="icon" href="data:,">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+        }
+        #detailMap {
+            height: 250px;
+            border-radius: 8px;
+        }
+        .region-actions { display: flex; gap: 10px; }
+        .info-window { padding: 5px; }
+        .info-window h6 { margin: 0 0 5px; color: #28a745; }
+        .info-window p { margin: 0; font-size: 0.9em; }
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 2;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .map-controls .btn.active {
+            background-color: #28a745;
+            color: white;
+        }
+        .region-card { transition: transform 0.2s ease; }
+        .region-card:hover { transform: translateY(-2px); }
+        .notification { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .modal-content {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .modal-header {
+            border-bottom: 1px solid #dee2e6;
+        }
+        .modal-footer {
+            border-top: 1px solid #dee2e6;
+        }
+        .btn-success {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
+        }
+        .loading-spinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1050;
+        }
+        .summary-card {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px; /* Increased padding */
+            margin-bottom: 30px; /* Increased margin */
+            border: 1px solid #e9ecef; /* Subtle border */
+        }
+        .summary-card h5 {
+            margin-bottom: 20px; /* Increased spacing */
+            font-size: 1.25rem; /* Slightly larger heading */
+            color: #343a40;
+        }
+        .summary-card h6 {
+            margin-bottom: 8px; /* Increased spacing */
+            font-size: 0.95rem; /* Slightly smaller for hierarchy */
+            color: #495057;
+            font-weight: 600; /* Slightly bolder */
+        }
+        .summary-card p {
+            margin-bottom: 0;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .summary-card .col-md-4 {
+            border-right: 1px solid #e9ecef; /* Divider between columns */
+            padding-right: 20px;
+            padding-left: 20px;
+        }
+        .summary-card .col-md-4:last-child {
+            border-right: none; /* Remove divider from last column */
+        }
+        .region-details-card {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 25px; /* Increased padding */
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .region-details-card h5 {
+            margin-bottom: 20px;
+            font-size: 1.25rem;
+            color: #343a40;
+        }
+        .region-details-card .detail-item {
+            margin-bottom: 15px; /* Increased spacing between items */
+        }
+        .region-details-card .detail-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        .region-details-card .detail-value {
+            font-size: 0.9rem;
+            color: #6c757d;
+            word-wrap: break-word; /* Ensure text wraps */
+        }
+        .region-details-card .badge {
+            font-size: 0.85rem;
+        }
+        .region-details-card .action-btn {
+            margin-top: 10px;
+        }
+        .schedule-highlight {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+        .no-location-message {
+            text-align: center;
+            padding: 20px;
+            background-color: #f8d7da;
+            color: #721c24;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Placeholder -->
+    <div id="navbar-placeholder"></div>
+
+    <!-- Main Content -->
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Nearest Region</h1>
+        </div>
+
+        <!-- Map Container -->
+        <div class="position-relative mb-4">
+            <div id="map"></div>
+            <div class="map-controls">
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-success active" id="streetLayerBtn" data-bs-toggle="tooltip" title="Switch to street view" role="button" aria-pressed="true">
+                        <i class="fas fa-road"></i> Street
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" id="satelliteLayerBtn" data-bs-toggle="tooltip" title="Switch to satellite view" role="button" aria-pressed="false">
+                        <i class="fas fa-satellite"></i> Satellite
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" id="setLocationBtn" data-bs-toggle="tooltip" title="Set your location" role="button" aria-pressed="false">
+                        <i class="fas fa-map-marker-alt"></i> Set Location
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Region Summary Card -->
+        <div class="summary-card" id="regionSummaryCard" style="display: none;">
+            <h5>Region Summary</h5>
+            <div class="row">
+                <div class="col-md-5">
+                    <h6>Region Name</h6>
+                    <p id="summaryRegionName">Not selected</p>
+                </div>
+                <div class="col-md-4">
+                    <h6>Schedule</h6>
+                    <p id="summarySchedule">Not set</p>
+                </div>
+                <div class="col-md-3">
+                    <h6>Transporter</h6>
+                    <p id="summaryTransporter">Unassigned</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nearest Region Details -->
+        <div class="region-details-card" id="regionsCard" style="display: none;">
+            <h5 class="card-title">Nearest Region Details</h5>
+            <div id="noLocationMessage" class="no-location-message">Please set your location to find the nearest region.</div>
+            <div id="regionDetailsContent">
+                <div class="detail-item">
+                    <div class="detail-label">Region Name</div>
+                    <div class="detail-value" id="detailRegionName"></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Coordinates</div>
+                    <div class="detail-value">
+                        <strong>Start:</strong> <span id="detailStartPoint"></span><br>
+                        <strong>End:</strong> <span id="detailEndPoint"></span>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Schedule</div>
+                    <div class="detail-value" id="detailSchedule"></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Status</div>
+                    <div class="detail-value" id="detailStatus"></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Distance</div>
+                    <div class="detail-value" id="detailDistance"></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Proximity</div>
+                    <div class="detail-value" id="detailDistanceFromUser"></div>
+                </div>
+                <div class="action-btn">
+                    <button class="btn btn-sm btn-outline-primary view-details-btn" id="viewDetailsBtn" aria-label="View region details">
+                        <i class="fas fa-eye"></i> View Details
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Region Details Modal -->
+    <div class="modal fade" id="regionDetailsModal" tabindex="-1" aria-labelledby="regionDetailsTitle">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="regionDetailsTitle">Region Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Schedule</h6>
+                            <p class="schedule-highlight" id="detailSchedule"></p>
+                            <h6>Start Point</h6>
+                            <p id="detailStartPoint"></p>
+                            <h6>End Point</h6>
+                            <p id="detailEndPoint"></p>
+                            <h6>Status</h6>
+                            <p id="detailStatus"></p>
+                            <h6>Distance</h6>
+                            <p id="detailDistance"></p>
+                            <h6>Description</h6>
+                            <p id="detailDescription"></p>
+                            <h6>Assigned To</h6>
+                            <p id="detailAssignedTo"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="detailMap"></div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <h6>Waypoints</h6>
+                        <ul id="detailWaypoints" class="list-group">
+                            <!-- Waypoints will be populated here -->
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" id="zoomToRegionBtn" aria-label="Zoom to region on map">Zoom to Region</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
+        <div id="notificationToast" class="toast notification" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto" id="toastTitle">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage"></div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loadingSpinner" style="display: none;">
+        <div class="spinner-border text-success" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Footer Placeholder -->
+    <div id="bottom-nav"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-database-compat.js"></script>
+    <script src="/assets/js/apikeys.js"></script>
+    <script type="module" src="/assets/js/logout-ui.js"></script>
+    <script>
+        // API key validation
+        if (!window.apiKeys || !window.apiKeys.firebase || !window.apiKeys.GOOGLE_MAPS_API_KEY) {
+            document.body.innerHTML = '<div class="alert alert-danger m-3">Error: Application configuration is missing. Please contact support.</div>';
+            throw new Error('API keys missing');
+        }
+
+        // Firebase initialization
+        firebase.initializeApp(window.apiKeys.firebase);
+        const database = firebase.database();
+        const auth = firebase.auth();
+
+        const RegionViewer = (() => {
+            let map;
+            let detailMap = null;
+            let currentMapLayer = 'roadmap';
+            let regionPolylines = {};
+            let markers = [];
+            let allRegions = [];
+            let nearestRegion = null;
+            let userLocation = null;
+            let userMarker = null;
+            let isSettingLocation = false;
+            let isGoogleMapsLoaded = false;
+            let mapClickListener = null;
+            const useAdvancedMarkers = !!window.apiKeys.GOOGLE_MAPS_MAP_ID;
+
+            // Load navigation and footer
+            function loadNavigationAndFooter() {
+                return new Promise((resolve, reject) => {
+                    const navPlaceholder = document.getElementById('navbar-placeholder');
+                    const footerPlaceholder = document.getElementById('bottom-nav');
+                    let navLoaded = false;
+                    let footerLoaded = false;
+
+                    if (navPlaceholder) {
+                        fetch('/assets/templates/pplnav.html')
+                            .then(response => response.ok ? response.text() : Promise.reject(`Failed to fetch pplnav.html: ${response.status}`))
+                            .then(data => {
+                                navPlaceholder.innerHTML = DOMPurify.sanitize(data);
+                                const dropdowns = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+                                dropdowns.forEach(dropdown => new bootstrap.Dropdown(dropdown));
+                                navLoaded = true;
+                                if (navLoaded && footerLoaded) resolve();
+                            })
+                            .catch(error => {
+                                console.error('Error loading navigation:', error);
+                                navPlaceholder.innerHTML = '<div class="alert alert-danger">Failed to load navigation. Please refresh.</div>';
+                                reject(error);
+                            });
+                    } else {
+                        navLoaded = true;
+                    }
+
+                    if (footerPlaceholder) {
+                        fetch('/assets/templates/bottomnav.html')
+                            .then(response => response.ok ? response.text() : Promise.reject(`Failed to fetch bottomnav.html: ${response.status}`))
+                            .then(data => {
+                                footerPlaceholder.innerHTML = DOMPurify.sanitize(data);
+                                footerLoaded = true;
+                                if (navLoaded && footerLoaded) resolve();
+                            })
+                            .catch(error => {
+                                console.error('Error loading footer:', error);
+                                footerPlaceholder.innerHTML = '<div class="alert alert-danger">Failed to load footer. Please refresh.</div>';
+                                reject(error);
+                            });
+                    } else {
+                        footerLoaded = true;
+                    }
+
+                    if (navLoaded && footerLoaded) resolve();
+                });
+            }
+
+            // Parse coordinates
+            function parseCoordinates(coord) {
+                if (!coord) return { lat: 0, lng: 0 };
+                if (Array.isArray(coord)) return { lat: Number(coord[0]), lng: Number(coord[1]) };
+                if (typeof coord === 'object' && coord.lat !== undefined && coord.lng !== undefined) {
+                    return { lat: Number(coord.lat), lng: Number(coord.lng) };
+                }
+                if (typeof coord !== 'string') return { lat: 0, lng: 0 };
+                const match = coord.match(/Location\s*\((\d+\.\d+),\s*(\d+\.\d+)\)/i);
+                if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+                const coords = coord.split(',').map(num => parseFloat(num.trim())).filter(n => !isNaN(n));
+                if (coords.length === 2) return { lat: coords[0], lng: coords[1] };
+                return { lat: 0, lng: 0 };
+            }
+
+            // Format coordinates for display
+            function formatCoordinates(coords) {
+                if (!coords || !coords.lat || !coords.lng) return 'Invalid coordinates';
+                return `Location (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`;
+            }
+
+            // Format schedule for display
+            function formatSchedule(schedule) {
+                if (!schedule || !schedule.days || schedule.days.length === 0) return 'Not set';
+                const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const selectedDays = schedule.days
+                    .map(d => days[parseInt(d)])
+                    .filter(day => day !== undefined);
+                const timeRange = (schedule.startTime && schedule.endTime)
+                    ? `${schedule.startTime} - ${schedule.endTime}`
+                    : '';
+                return `${selectedDays.join(', ')} ${timeRange}`.trim();
+            }
+
+            // Calculate distance (Haversine formula)
+            function calculateDistance(point1, point2) {
+                if (!point1 || !point2 || !point1.lat || !point1.lng || !point2.lat || !point2.lng) return Infinity;
+                const lat1 = point1.lat;
+                const lon1 = point1.lng;
+                const lat2 = point2.lat;
+                const lon2 = point2.lng;
+                const R = 6371;
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                return R * c;
+            }
+
+            // Calculate total region distance
+            function calculateRegionDistance(points) {
+                if (!points || points.length < 2) return 0;
+                let totalDistance = 0;
+                for (let i = 0; i < points.length - 1; i++) {
+                    const dist = calculateDistance(points[i], points[i + 1]);
+                    if (dist !== Infinity) totalDistance += dist;
+                }
+                return totalDistance.toFixed(2);
+            }
+
+            // Save user location to localStorage
+            function saveUserLocation() {
+                if (userLocation) {
+                    localStorage.setItem('userLocation', JSON.stringify(userLocation));
+                }
+            }
+
+            // Load user location from localStorage
+            function loadSavedLocation() {
+                const saved = localStorage.getItem('userLocation');
+                return saved ? JSON.parse(saved) : null;
+            }
+
+            // Fetch transporter name
+            async function fetchTransporterName(userId) {
+                console.log('Fetching transporter name for userId:', userId);
+                if (!userId || userId === 'Unassigned') {
+                    console.log('Transporter is Unassigned');
+                    return 'Unassigned';
+                }
+                try {
+                    const snapshot = await database.ref(`users/${userId}/fullName`).once('value');
+                    const name = snapshot.val() || 'Unassigned';
+                    console.log(`Transporter name retrieved: ${name}`);
+                    return name;
+                } catch (error) {
+                    console.error('Error fetching transporter name:', error);
+                    return 'Unassigned';
+                }
+            }
+
+            // Initialize Google Maps
+            function initMap() {
+                try {
+                    const yelahanka = { lat: 13.1005, lng: 77.5963 };
+                    const mapOptions = {
+                        center: yelahanka,
+                        zoom: 12,
+                        mapTypeId: 'roadmap'
+                    };
+                    if (useAdvancedMarkers) {
+                        mapOptions.mapId = window.apiKeys.GOOGLE_MAPS_MAP_ID;
+                    }
+                    map = new google.maps.Map(document.getElementById('map'), mapOptions);
+
+                    userLocation = loadSavedLocation();
+                    if (userLocation && userLocation.lat && userLocation.lng) {
+                        setUserMarker();
+                        map.setCenter(userLocation);
+                    } else {
+                        userLocation = yelahanka;
+                        saveUserLocation();
+                        setUserMarker();
+                        showNotification('Info', 'Using default location (Yelahanka) due to missing or invalid user location.');
+                    }
+                    loadAllRegions();
+                    isGoogleMapsLoaded = true;
+                    hideLoadingSpinner();
+                } catch (error) {
+                    console.error('Map initialization error:', error);
+                    showNotification('Error', 'Failed to initialize map. Please refresh.');
+                    hideLoadingSpinner();
+                }
+            }
+
+            // Load Google Maps API
+            function loadGoogleMapsAPI() {
+                const apiKey = window.apiKeys.GOOGLE_MAPS_API_KEY;
+                if (!apiKey) {
+                    showNotification('Error', 'Google Maps API key missing.');
+                    hideLoadingSpinner();
+                    return;
+                }
+                window.initMap = initMap;
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap&libraries=marker&loading=async`;
+                script.async = true;
+                script.defer = true;
+                script.onerror = () => {
+                    showNotification('Error', 'Failed to load Google Maps API. Check network or API key.');
+                    hideLoadingSpinner();
+                };
+                document.head.appendChild(script);
+            }
+
+            // Get user location via Geolocation API
+            function getUserLocation(callback) {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            callback({ lat: position.coords.latitude, lng: position.coords.longitude }, null);
+                        },
+                        (error) => {
+                            console.warn('Geolocation error:', error.message);
+                            callback(null, error);
+                        },
+                        { timeout: 10000, enableHighAccuracy: true }
+                    );
+                } else {
+                    console.warn('Geolocation not supported');
+                    callback(null, new Error('Geolocation not supported'));
+                }
+            }
+
+            // Set user marker
+            function setUserMarker() {
+                if (userMarker) userMarker.setMap(null);
+                const markerOptions = {
+                    position: userLocation,
+                    map: map,
+                    draggable: true
+                };
+                if (useAdvancedMarkers) {
+                    markerOptions.content = createMarkerIcon('#007bff');
+                    userMarker = new google.maps.marker.AdvancedMarkerElement(markerOptions);
+                    userMarker.addListener('gmp-click', () => {
+                        new google.maps.InfoWindow({
+                            content: '<div class="info-window"><h6>Your Location</h6><p>Drag to adjust</p></div>'
+                        }).open(map, userMarker);
+                    });
+                } else {
+                    markerOptions.icon = {
+                        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(createMarkerIcon('#007bff').outerHTML),
+                        scaledSize: new google.maps.Size(12, 12)
+                    };
+                    userMarker = new google.maps.Marker(markerOptions);
+                    userMarker.addListener('click', () => {
+                        new google.maps.InfoWindow({
+                            content: '<div class="info-window"><h6>Your Location</h6><p>Drag to adjust</p></div>'
+                        }).open(map, userMarker);
+                    });
+                }
+                userMarker.addListener('dragend', () => {
+                    userLocation = { lat: userMarker.position.lat(), lng: userMarker.position.lng() };
+                    saveUserLocation();
+                    updateUI();
+                });
+                markers = markers.filter(m => m !== userMarker);
+                markers.push(userMarker);
+            }
+
+            // Create marker icon
+            function createMarkerIcon(color, scale = 6) {
+                const svg = `<svg width="${scale * 2}" height="${scale * 2}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="${color}" stroke="white" stroke-width="2"/></svg>`;
+                const parser = new DOMParser();
+                return parser.parseFromString(svg, 'image/svg+xml').documentElement;
+            }
+
+            // Set map layer
+            function setMapLayer(type) {
+                if (map) {
+                    map.setMapTypeId(type);
+                    currentMapLayer = type;
+                    drawRegions();
+                }
+            }
+
+            // Load all regions from Firebase
+            function loadAllRegions() {
+                if (!userLocation) {
+                    console.warn('No userLocation, skipping region load');
+                    return;
+                }
+                const regionsRef = database.ref('regions');
+                regionsRef.on('value', (regionsSnapshot) => {
+                    allRegions = [];
+                    const allRegionsData = regionsSnapshot.val() || {};
+                    let validRegions = 0;
+                    if (Object.keys(allRegionsData).length === 0) {
+                        showNotification('Info', 'No regions available in Firebase.');
+                    }
+                    Object.entries(allRegionsData).forEach(([regionId, region]) => {
+                        let start, end, waypoints = [];
+                        if (region.coordinates && Array.isArray(region.coordinates) && region.coordinates.length >= 2) {
+                            start = region.coordinates[0];
+                            end = region.coordinates[region.coordinates.length - 1];
+                            waypoints = region.coordinates.slice(1, -1).map((coord, index) => ({
+                                name: `Waypoint ${index + 1}`,
+                                coordinates: coord
+                            }));
+                        } else {
+                            start = parseCoordinates(region.startPoint);
+                            end = parseCoordinates(region.endPoint);
+                            waypoints = Array.isArray(region.waypoints) ? region.waypoints.map(wp => ({
+                                name: wp.name || 'Unnamed Waypoint',
+                                coordinates: parseCoordinates(wp.coordinates)
+                            })) : [];
+                        }
+                        if (start.lat === 0 && start.lng === 0 && end.lat === 0 && end.lng === 0) {
+                            console.warn(`Invalid coordinates for region ${regionId}, skipping`);
+                            return;
+                        }
+                        validRegions++;
+                        const points = [start, ...waypoints.map(w => w.coordinates), end];
+                        allRegions.push({
+                            id: regionId,
+                            name: region.name || 'Unnamed Region',
+                            start: start,
+                            startPoint: formatCoordinates(start),
+                            end: end,
+                            endPoint: formatCoordinates(end),
+                            waypoints: waypoints,
+                            status: region.status || 'inactive',
+                            description: region.notes || '',
+                            schedule: region.schedule || null,
+                            assignedTo: region.transporterUid || 'Unassigned',
+                            distance: calculateRegionDistance(points)
+                        });
+                    });
+                    if (validRegions === 0) {
+                        showNotification('Error', 'No regions with valid coordinates found. Please update Firebase data.');
+                    }
+                    updateUI();
+                    hideLoadingSpinner();
+                }, error => {
+                    console.error('Firebase fetch error:', error);
+                    showNotification('Error', `Failed to load regions: ${error.message}`);
+                    hideLoadingSpinner();
+                });
+            }
+
+            // Update UI
+            async function updateUI() {
+                const noLocationMessage = document.getElementById('noLocationMessage');
+                const regionsCard = document.getElementById('regionsCard');
+                const regionSummaryCard = document.getElementById('regionSummaryCard');
+
+                if (!userLocation) {
+                    noLocationMessage.style.display = 'block';
+                    regionsCard.style.display = 'none';
+                    regionSummaryCard.style.display = 'none';
+                    clearMap();
+                    return;
+                }
+
+                noLocationMessage.style.display = 'none';
+                regionsCard.style.display = 'block';
+                regionSummaryCard.style.display = 'block';
+
+                allRegions.forEach(region => {
+                    region.distanceFromUser = calculateDistance(userLocation, region.start);
+                });
+
+                nearestRegion = allRegions.reduce((nearest, region) => {
+                    if (!nearest || (region.distanceFromUser < nearest.distanceFromUser && region.start.lat && region.start.lng)) return region;
+                    return nearest;
+                }, null);
+
+                await updateSummaryCard();
+                loadRegions();
+                drawRegions();
+                if (nearestRegion) {
+                    viewRegionDetails(nearestRegion.id);
+                }
+                fitMapToRegions();
+            }
+
+            // Clear map
+            function clearMap() {
+                Object.values(regionPolylines).forEach(polyline => polyline.setMap(null));
+                regionPolylines = {};
+                markers.forEach(marker => marker.setMap(null));
+                markers = [];
+                if (userMarker) {
+                    markers.push(userMarker);
+                }
+            }
+
+            // Update summary card
+            async function updateSummaryCard() {
+                const regionSummaryCard = document.getElementById('regionSummaryCard');
+                const summaryRegionName = document.getElementById('summaryRegionName');
+                const summarySchedule = document.getElementById('summarySchedule');
+                const summaryTransporter = document.getElementById('summaryTransporter');
+
+                if (!nearestRegion) {
+                    regionSummaryCard.style.display = 'none';
+                    return;
+                }
+
+                summaryRegionName.textContent = DOMPurify.sanitize(nearestRegion.name);
+                summarySchedule.textContent = formatSchedule(nearestRegion.schedule);
+                const transporterName = await fetchTransporterName(nearestRegion.assignedTo);
+                summaryTransporter.textContent = DOMPurify.sanitize(transporterName);
+            }
+
+            // Draw regions on the map
+            function drawRegions() {
+                clearMap();
+                if (!userLocation || !nearestRegion || !nearestRegion.start.lat || !nearestRegion.end.lat) {
+                    console.warn('Invalid userLocation or nearestRegion, skipping draw');
+                    return;
+                }
+                const points = [nearestRegion.start, ...nearestRegion.waypoints.map(w => w.coordinates), nearestRegion.end];
+                const color = getStatusColor(nearestRegion.status);
+                const polyline = new google.maps.Polyline({
+                    path: points,
+                    geodesic: true,
+                    strokeColor: color,
+                    strokeOpacity: 0.7,
+                    strokeWeight: 4
+                });
+                polyline.setMap(map);
+                polyline.addListener('click', () => viewRegionDetails(nearestRegion.id));
+                polyline.addListener('mouseover', () => polyline.setOptions({ strokeWeight: 6, strokeOpacity: 1 }));
+                polyline.addListener('mouseout', () => polyline.setOptions({ strokeWeight: 4, strokeOpacity: 0.7 }));
+                regionPolylines[nearestRegion.id] = polyline;
+
+                const startMarkerOptions = { position: nearestRegion.start, map: map };
+                let startMarker;
+                if (useAdvancedMarkers) {
+                    startMarkerOptions.content = createMarkerIcon('#28a745');
+                    startMarker = new google.maps.marker.AdvancedMarkerElement(startMarkerOptions);
+                    startMarker.addListener('gmp-click', () => {
+                        new google.maps.InfoWindow({
+                            content: `<div class="info-window"><h6>${nearestRegion.name}</h6><p>Start: ${nearestRegion.startPoint}</p></div>`
+                        }).open(map, startMarker);
+                    });
+                } else {
+                    startMarkerOptions.icon = {
+                        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(createMarkerIcon('#28a745').outerHTML),
+                        scaledSize: new google.maps.Size(12, 12)
+                    };
+                    startMarker = new google.maps.Marker(startMarkerOptions);
+                    startMarker.addListener('click', () => {
+                        new google.maps.InfoWindow({
+                            content: `<div class="info-window"><h6>${nearestRegion.name}</h6><p>Start: ${nearestRegion.startPoint}</p></div>`
+                        }).open(map, startMarker);
+                    });
+                }
+                markers.push(startMarker);
+
+                const endMarkerOptions = { position: nearestRegion.end, map: map };
+                let endMarker;
+                if (useAdvancedMarkers) {
+                    endMarkerOptions.content = createMarkerIcon('#dc3545');
+                    endMarker = new google.maps.marker.AdvancedMarkerElement(endMarkerOptions);
+                    endMarker.addListener('gmp-click', () => {
+                        new google.maps.InfoWindow({
+                            content: `<div class="info-window"><h6>${nearestRegion.name}</h6><p>End: ${nearestRegion.endPoint}</p></div>`
+                        }).open(map, endMarker);
+                    });
+                } else {
+                    endMarkerOptions.icon = {
+                        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(createMarkerIcon('#dc3545').outerHTML),
+                        scaledSize: new google.maps.Size(12, 12)
+                    };
+                    endMarker = new google.maps.Marker(endMarkerOptions);
+                    endMarker.addListener('click', () => {
+                        new google.maps.InfoWindow({
+                            content: `<div class="info-window"><h6>${nearestRegion.name}</h6><p>End: ${nearestRegion.endPoint}</p></div>`
+                        }).open(map, endMarker);
+                    });
+                }
+                markers.push(endMarker);
+
+                nearestRegion.waypoints.forEach(wp => {
+                    const wpMarkerOptions = { position: wp.coordinates, map: map };
+                    let wpMarker;
+                    if (useAdvancedMarkers) {
+                        wpMarkerOptions.content = createMarkerIcon('#17a2b8', 5);
+                        wpMarker = new google.maps.marker.AdvancedMarkerElement(wpMarkerOptions);
+                        wpMarker.addListener('gmp-click', () => {
+                            new google.maps.InfoWindow({
+                                content: `<div class="info-window"><h6>${wp.name}</h6><p>Waypoint</p></div>`
+                            }).open(map, wpMarker);
+                        });
+                    } else {
+                        wpMarkerOptions.icon = {
+                            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(createMarkerIcon('#17a2b8', 5).outerHTML),
+                            scaledSize: new google.maps.Size(10, 10)
+                        };
+                        wpMarker = new google.maps.Marker(wpMarkerOptions);
+                        wpMarker.addListener('click', () => {
+                            new google.maps.InfoWindow({
+                                content: `<div class="info-window"><h6>${wp.name}</h6><p>Waypoint</p></div>`
+                            }).open(map, wpMarker);
+                        });
+                    }
+                    markers.push(wpMarker);
+                });
+            }
+
+            // Fit map to show user location and nearest region
+            function fitMapToRegions() {
+                if (!userLocation) {
+                    map.setCenter({ lat: 13.1005, lng: 77.5963 });
+                    map.setZoom(12);
+                    return;
+                }
+                const bounds = new google.maps.LatLngBounds();
+                bounds.extend(userLocation);
+                if (nearestRegion && nearestRegion.start.lat && nearestRegion.end.lat) {
+                    bounds.extend(nearestRegion.start);
+                    bounds.extend(nearestRegion.end);
+                    nearestRegion.waypoints.forEach(wp => bounds.extend(wp.coordinates));
+                }
+                map.fitBounds(bounds, { padding: 50 });
+            }
+
+            // Show region details modal
+            function viewRegionDetails(regionId) {
+                if (!nearestRegion || nearestRegion.id !== regionId || !nearestRegion.start.lat || !nearestRegion.end.lat) {
+                    console.warn('Invalid region data for view:', nearestRegion);
+                    showNotification('Error', 'Region not found or invalid coordinates.');
+                    return;
+                }
+                document.getElementById('regionDetailsTitle').textContent = DOMPurify.sanitize(nearestRegion.name);
+                document.getElementById('regionDetailsTitle').dataset.regionId = regionId;
+                document.getElementById('detailStartPoint').textContent = DOMPurify.sanitize(nearestRegion.startPoint);
+                document.getElementById('detailEndPoint').textContent = DOMPurify.sanitize(nearestRegion.endPoint);
+                const statusText = nearestRegion.status.charAt(0).toUpperCase() + nearestRegion.status.slice(1);
+                const statusClass = getStatusClass(nearestRegion.status);
+                document.getElementById('detailStatus').innerHTML = DOMPurify.sanitize(`<span class="badge ${statusClass}">${statusText}</span>`);
+                document.getElementById('detailDistance').textContent = `${nearestRegion.distance} km`;
+                document.getElementById('detailDescription').textContent = DOMPurify.sanitize(nearestRegion.description || 'No description available');
+                document.getElementById('detailSchedule').textContent = formatSchedule(nearestRegion.schedule);
+                document.getElementById('detailAssignedTo').textContent = DOMPurify.sanitize(nearestRegion.assignedTo);
+
+                const waypointsList = document.getElementById('detailWaypoints');
+                waypointsList.innerHTML = '';
+                if (nearestRegion.waypoints.length === 0) {
+                    waypointsList.innerHTML = '<li class="list-group-item">No waypoints defined</li>';
+                } else {
+                    nearestRegion.waypoints.forEach((waypoint, index) => {
+                        const item = document.createElement('li');
+                        item.className = 'list-group-item';
+                        item.textContent = `${index + 1}. ${waypoint.name} (${waypoint.coordinates.lat.toFixed(4)}, ${waypoint.coordinates.lng.toFixed(4)})`;
+                        waypointsList.appendChild(item);
+                    });
+                }
+
+                if (detailMap) detailMap = null;
+                setTimeout(() => {
+                    try {
+                        const mapOptions = {
+                            center: nearestRegion.start,
+                            zoom: 11,
+                            mapTypeId: 'roadmap'
+                        };
+                        if (useAdvancedMarkers) {
+                            mapOptions.mapId = window.apiKeys.GOOGLE_MAPS_MAP_ID;
+                        }
+                        detailMap = new google.maps.Map(document.getElementById('detailMap'), mapOptions);
+                        const points = [nearestRegion.start, ...nearestRegion.waypoints.map(w => w.coordinates), nearestRegion.end];
+                        const polyline = new google.maps.Polyline({
+                            path: points,
+                            geodesic: true,
+                            strokeColor: getStatusColor(nearestRegion.status),
+                            strokeOpacity: 0.7,
+                            strokeWeight: 4
+                        });
+                        polyline.setMap(detailMap);
+
+                        const startMarkerOptions = { position: nearestRegion.start, map: detailMap };
+                        let startMarker;
+                        if (useAdvancedMarkers) {
+                            startMarkerOptions.content = createMarkerIcon('#28a745');
+                            startMarker = new google.maps.marker.AdvancedMarkerElement(startMarkerOptions);
+                            startMarker.addListener('gmp-click', () => {
+                                new google.maps.InfoWindow({
+                                    content: `Start: ${nearestRegion.startPoint}`
+                                }).open(detailMap, startMarker);
+                            });
+                        } else {
+                            startMarkerOptions.icon = {
+                                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(createMarkerIcon('#28a745').outerHTML),
+                                scaledSize: new google.maps.Size(12, 12)
+                            };
+                            startMarker = new google.maps.Marker(startMarkerOptions);
+                            startMarker.addListener('click', () => {
+                                new google.maps.InfoWindow({
+                                    content: `Start: ${nearestRegion.startPoint}`
+                                }).open(detailMap, startMarker);
+                            });
+                        }
+
+                        const endMarkerOptions = { position: nearestRegion.end, map: detailMap };
+                        let endMarker;
+                        if (useAdvancedMarkers) {
+                            endMarkerOptions.content = createMarkerIcon('#dc3545');
+                            endMarker = new google.maps.marker.AdvancedMarkerElement(endMarkerOptions);
+                            endMarker.addListener('gmp-click', () => {
+                                new google.maps.InfoWindow({
+                                    content: `End: ${nearestRegion.endPoint}`
+                                }).open(detailMap, endMarker);
+                            });
+                        } else {
+                            endMarkerOptions.icon = {
+                                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(createMarkerIcon('#dc3545').outerHTML),
+                                scaledSize: new google.maps.Size(12, 12)
+                            };
+                            endMarker = new google.maps.Marker(endMarkerOptions);
+                            endMarker.addListener('click', () => {
+                                new google.maps.InfoWindow({
+                                    content: `End: ${nearestRegion.endPoint}`
+                                }).open(detailMap, endMarker);
+                            });
+                        }
+
+                        nearestRegion.waypoints.forEach(wp => {
+                            const wpMarkerOptions = { position: wp.coordinates, map: detailMap };
+                            let wpMarker;
+                            if (useAdvancedMarkers) {
+                                wpMarkerOptions.content = createMarkerIcon('#17a2b8', 5);
+                                wpMarker = new google.maps.marker.AdvancedMarkerElement(wpMarkerOptions);
+                                wpMarker.addListener('gmp-click', () => {
+                                    new google.maps.InfoWindow({
+                                        content: wp.name
+                                    }).open(detailMap, wpMarker);
+                                });
+                            } else {
+                                wpMarkerOptions.icon = {
+                                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(createMarkerIcon('#17a2b8', 5).outerHTML),
+                                    scaledSize: new google.maps.Size(10, 10)
+                                };
+                                wpMarker = new google.maps.Marker(wpMarkerOptions);
+                                wpMarker.addListener('click', () => {
+                                    new google.maps.InfoWindow({
+                                        content: wp.name
+                                    }).open(detailMap, wpMarker);
+                                });
+                            }
+                        });
+
+                        const bounds = new google.maps.LatLngBounds();
+                        points.forEach(point => bounds.extend(point));
+                        detailMap.fitBounds(bounds, { padding: 30 });
+                    } catch (error) {
+                        console.error("Error initializing detail map:", error);
+                        showNotification('Error', 'Failed to load region details map.');
+                    }
+                }, 100);
+
+                showModal('regionDetailsModal');
+            }
+
+            // Load nearest region into card
+            function loadRegions() {
+                const regionDetailsContent = document.getElementById('regionDetailsContent');
+                if (!regionDetailsContent) return;
+
+                if (!userLocation) {
+                    return;
+                }
+
+                if (!nearestRegion) {
+                    regionDetailsContent.innerHTML = '<p class="text-center text-muted">No regions available.</p>';
+                    return;
+                }
+
+                document.getElementById('detailRegionName').textContent = DOMPurify.sanitize(nearestRegion.name);
+                document.getElementById('detailStartPoint').textContent = DOMPurify.sanitize(nearestRegion.startPoint);
+                document.getElementById('detailEndPoint').textContent = DOMPurify.sanitize(nearestRegion.endPoint);
+                document.getElementById('detailSchedule').textContent = DOMPurify.sanitize(formatSchedule(nearestRegion.schedule));
+                const statusText = nearestRegion.status.charAt(0).toUpperCase() + nearestRegion.status.slice(1);
+                const statusClass = getStatusClass(nearestRegion.status);
+                document.getElementById('detailStatus').innerHTML = DOMPurify.sanitize(`<span class="badge ${statusClass}">${statusText}</span>`);
+                document.getElementById('detailDistance').textContent = DOMPurify.sanitize(`${nearestRegion.distance} km`);
+                document.getElementById('detailDistanceFromUser').textContent = DOMPurify.sanitize(`${nearestRegion.distanceFromUser.toFixed(2)} km`);
+
+                const viewButton = document.getElementById('viewDetailsBtn');
+                viewButton.dataset.regionId = nearestRegion.id;
+                viewButton.addEventListener('click', () => viewRegionDetails(nearestRegion.id));
+            }
+
+            // Zoom to region on main map
+            function zoomToRegion(regionId) {
+                if (!nearestRegion || nearestRegion.id !== regionId) return;
+                const points = [nearestRegion.start, ...nearestRegion.waypoints.map(w => w.coordinates), nearestRegion.end];
+                const bounds = new google.maps.LatLngBounds();
+                points.forEach(point => bounds.extend(point));
+                map.fitBounds(bounds, { padding: 50 });
+                hideModal('regionDetailsModal');
+            }
+
+            // Get status class for badge
+            function getStatusClass(status) {
+                switch (status) {
+                    case 'active': return 'bg-success';
+                    case 'inactive': return 'bg-danger';
+                    case 'maintenance': return 'bg-warning';
+                    case 'assigned': return 'bg-primary';
+                    default: return 'bg-secondary';
+                }
+            }
+
+            // Get status color for polyline
+            function getStatusColor(status) {
+                switch (status) {
+                    case 'active': return '#28a745';
+                    case 'inactive': return '#dc3545';
+                    case 'maintenance': return '#ffc107';
+                    case 'assigned': return '#007bff';
+                    default: return '#6c757d';
+                }
+            }
+
+            // Toggle location setting mode
+            function toggleSetLocationMode() {
+                isSettingLocation = !isSettingLocation;
+                const setLocationBtn = document.getElementById('setLocationBtn');
+                if (isSettingLocation) {
+                    setLocationBtn.classList.add('active');
+                    setLocationBtn.classList.remove('btn-outline-primary');
+                    setLocationBtn.classList.add('btn-primary');
+                    if (mapClickListener) {
+                        google.maps.event.removeListener(mapClickListener);
+                    }
+                    mapClickListener = map.addListener('click', setUserLocation);
+                    showNotification('Info', 'Click on the map to set your location.');
+                } else {
+                    setLocationBtn.classList.remove('active');
+                    setLocationBtn.classList.add('btn-outline-primary');
+                    setLocationBtn.classList.remove('btn-primary');
+                    if (mapClickListener) {
+                        google.maps.event.removeListener(mapClickListener);
+                        mapClickListener = null;
+                    }
+                }
+            }
+
+            // Set user location on map click
+            function setUserLocation(e) {
+                if (!e.latLng) {
+                    console.error('No latLng in event:', e);
+                    showNotification('Error', 'Unable to set location. Please try again.');
+                    return;
+                }
+                userLocation = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+                saveUserLocation();
+                setUserMarker();
+                map.setCenter(userLocation);
+                map.setZoom(12);
+                toggleSetLocationMode();
+                showNotification('Success', 'Location set successfully.');
+                loadAllRegions();
+            }
+
+            // Show notification
+            function showNotification(title, message) {
+                const toastTitle = document.getElementById('toastTitle');
+                const toastMessage = document.getElementById('toastMessage');
+                if (toastTitle && toastMessage) {
+                    toastTitle.textContent = title;
+                    toastMessage.textContent = message;
+                    const toast = new bootstrap.Toast(document.getElementById('notificationToast'));
+                    toast.show();
+                }
+            }
+
+            // Show modal
+            function showModal(modalId) {
+                const modal = new bootstrap.Modal(document.getElementById(modalId));
+                modal.show();
+            }
+
+            // Hide modal
+            function hideModal(modalId) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
+                if (modal) modal.hide();
+            }
+
+            // Show loading spinner
+            function showLoadingSpinner() {
+                const spinner = document.getElementById('loadingSpinner');
+                if (spinner) spinner.style.display = 'block';
+            }
+
+            // Hide loading spinner
+            function hideLoadingSpinner() {
+                const spinner = document.getElementById('loadingSpinner');
+                if (spinner) spinner.style.display = 'none';
+            }
+
+            // Setup event listeners
+            function setupEventListeners() {
+                const elements = {
+                    streetLayerBtn: document.getElementById('streetLayerBtn'),
+                    satelliteLayerBtn: document.getElementById('satelliteLayerBtn'),
+                    setLocationBtn: document.getElementById('setLocationBtn'),
+                    zoomToRegionBtn: document.getElementById('zoomToRegionBtn')
+                };
+
+                if (elements.streetLayerBtn) elements.streetLayerBtn.addEventListener('click', () => {
+                    setMapLayer('roadmap');
+                    elements.streetLayerBtn.classList.add('active');
+                    elements.streetLayerBtn.setAttribute('aria-pressed', 'true');
+                    elements.satelliteLayerBtn.classList.remove('active');
+                    elements.satelliteLayerBtn.setAttribute('aria-pressed', 'false');
+                });
+                if (elements.satelliteLayerBtn) elements.satelliteLayerBtn.addEventListener('click', () => {
+                    setMapLayer('satellite');
+                    elements.satelliteLayerBtn.classList.add('active');
+                    elements.satelliteLayerBtn.setAttribute('aria-pressed', 'true');
+                    elements.streetLayerBtn.classList.remove('active');
+                    elements.streetLayerBtn.setAttribute('aria-pressed', 'false');
+                });
+                if (elements.setLocationBtn) elements.setLocationBtn.addEventListener('click', toggleSetLocationMode);
+                if (elements.zoomToRegionBtn) elements.zoomToRegionBtn.addEventListener('click', () => {
+                    const regionId = document.getElementById('regionDetailsTitle')?.dataset.regionId;
+                    if (regionId) zoomToRegion(regionId);
+                });
+
+                const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltipTriggerList.forEach(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+            }
+
+            // Initialize
+            async function init() {
+                showLoadingSpinner();
+                try {
+                    await loadNavigationAndFooter();
+                    loadGoogleMapsAPI();
+                    setupEventListeners();
+
+                    auth.onAuthStateChanged(user => {
+                        if (user) {
+                            console.log('User authenticated:', user.uid);
+                        } else {
+                            auth.signInAnonymously()
+                                .then(() => {
+                                    console.log('Signed in anonymously');
+                                    showNotification('Success', 'Signed in anonymously.');
+                                })
+                                .catch(error => {
+                                    console.error('Sign-in error:', error);
+                                    showNotification('Error', `Failed to sign in: ${error.message}`);
+                                    hideLoadingSpinner();
+                                });
+                        }
+                    });
+
+                    if (!useAdvancedMarkers) {
+                        showNotification('Warning', 'Map ID is missing. Using legacy markers. Please add GOOGLE_MAPS_MAP_ID in apikeys.js for advanced marker support.');
+                    }
+                } catch (error) {
+                    console.error('Initialization error:', error);
+                    showNotification('Error', 'Failed to initialize page. Please refresh.');
+                    hideLoadingSpinner();
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', init);
+
+            return { initMap };
+        })();
+    </script>
+</body>
+</html>

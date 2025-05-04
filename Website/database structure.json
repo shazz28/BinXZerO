@@ -1,0 +1,287 @@
+{
+  "admin": {
+    "ZN71qhtukaZC9MpymZWi3B8no5A3": {
+      "address": {
+        "city": "Banaglore",
+        "country": "India",
+        "state": "karanataka",
+        "street": "abc nilaya, 5th phase yelahanka",
+        "zipCode": "560064"
+      },
+      "createdAt": "2025-03-14T07:26:04.104Z",
+      "email": "def@gmail.com",
+      "fullName": "abc",
+      "joiningDate": "2025-03-15",
+      "phone": "12345678911",
+      "role": "Admin"
+    },
+    "notifications": {
+      "-OM1f2NMp3gtWU7srTm7": {
+        "employeeId": "EyQzhteX6gc9h1u6UjLLG7t9oHa2",
+        "leaveId": "LV-2025-3663",
+        "message": "New leave request from Transporter EyQzhteX6gc9h1u6UjLLG7t9oHa2",
+        "read": false,
+        "timestamp": "2025-03-23T11:03:39.932Z",
+        "type": "leave_request"
+      },
+      "-OM1fo37RxJw3-X5xiL9": {
+        "employeeId": "EyQzhteX6gc9h1u6UjLLG7t9oHa2",
+        "leaveId": "LV-2025-8958",
+        "message": "New leave request from Transporter EyQzhteX6gc9h1u6UjLLG7t9oHa2",
+        "read": false,
+        "timestamp": "2025-03-23T11:06:59.338Z",
+        "type": "leave_request"
+      }
+    }
+  },
+  "community_Absences": {
+    "WrSp5J5i3mU90DTXyDX0yluM3Bu2": {
+      "absences": {
+        "-OM7p_DwkTjkjs3ziXON": {
+          "absenceType": "vacation",
+          "appliedAt": "2025-03-24T15:47:21.941Z",
+          "duration": "single",
+          "endDate": "2025-03-25",
+          "memberId": "WrSp5J5i3mU90DTXyDX0yluM3Bu2",
+          "referenceId": "CL-2025-0701",
+          "startDate": "2025-03-25",
+          "status": "recorded"
+        }
+      },
+      "totalAbsences": 12,
+      "usedDays": 1
+    }
+  },
+  "leaves": {
+    "-OM1fo2Qb8CnAMn-YuW9": {
+      "actionBy": "def@gmail.com",
+      "actionDate": "2025-03-23T11:14:08.856Z",
+      "appliedAt": "2025-03-23T11:06:59.293Z",
+      "contactInfo": "1234567890",
+      "duration": "full",
+      "employeeId": "EyQzhteX6gc9h1u6UjLLG7t9oHa2",
+      "endDate": "2025-03-25",
+      "handoverDetails": "",
+      "isVisibleToAdmin": true,
+      "leaveType": "annual",
+      "reason": "sdfgvds",
+      "referenceId": "LV-2025-8958",
+      "startDate": "2025-03-25",
+      "status": "approved"
+    }
+  },
+  "public": {
+    "JDAr0t5pxQX7RBGjEpkj9g4oiCB3": {
+      "address": "[object Object]",
+      "createdAt": "2025-03-12T17:00:04.751Z",
+      "email": "sha@gmail.com",
+      "fullName": "abc",
+      "joiningDate": "2025-03-14",
+      "name": "undefined",
+      "phone": "1234567890",
+      "position": "",
+      "role": "Public",
+      "status": "active",
+      "uid": "undefined",
+      "updatedAt": "2025-03-15T07:18:14.711Z"
+    },
+    "WrSp5J5i3mU90DTXyDX0yluM3Bu2": {
+      "address": {
+        "city": "bengaluru",
+        "country": "India",
+        "state": "karanataka",
+        "street": "abc nilaya",
+        "zipCode": "560064"
+      },
+      "createdAt": "2025-03-09T12:52:19.393Z",
+      "email": "ab12@gmail.com",
+      "fullName": "milkesh",
+      "joiningDate": "2025-03-07",
+      "phone": "1234567890",
+      "position": "",
+      "status": "inactive",
+      "uid": "WrSp5J5i3mU90DTXyDX0yluM3Bu2",
+      "updatedAt": "2025-03-15T07:27:35.788Z"
+    }
+  },
+  "routes": {
+    "-OKqSs97Y_ysBBAgNxx8": {
+      "assignedTo": "EyQzhteX6gc9h1u6UjLLG7t9oHa2",
+      "description": "veersagara route",
+      "endPoint": "Location (13.1033, 77.5590)",
+      "routeName": "new",
+      "startPoint": "Location (13.1023, 77.5669)",
+      "status": "maintenance"
+    },
+    "-OLyHg04aHgM1KTET5N3": {
+      "assignedTo": "EyQzhteX6gc9h1u6UjLLG7t9oHa2",
+      "description": "aswfdc",
+      "endPoint": "Location (13.0976, 77.5633)",
+      "routeName": "abc",
+      "startPoint": "Location (13.1019, 77.5861)",
+      "status": "inactive"
+    },
+    "-OM07Xxu7hBBzVCC0hPU": {
+      "assignedTo": "EyQzhteX6gc9h1u6UjLLG7t9oHa2",
+      "description": "main route",
+      "endPoint": "Location (13.1145, 77.5788)",
+      "routeName": "NES",
+      "startPoint": "Location (13.1026, 77.5858)",
+      "status": "active"
+    },
+    "-OM08wnNSkM9wo0sSpht": {
+      "description": "",
+      "endPoint": "Location (13.1147, 77.5790)",
+      "routeName": "asdfcsz",
+      "startPoint": "Location (13.1148, 77.5672)",
+      "status": "inactive"
+    },
+    "-OM0Fe_Hs2qzt-M43iWu": {
+      "assignedTo": "EyQzhteX6gc9h1u6UjLLG7t9oHa2",
+      "description": "",
+      "endPoint": "Location (13.0979, 77.5671)",
+      "routeName": "gafvdzsg",
+      "startPoint": "Location (13.1148, 77.5671)",
+      "status": "active"
+    }
+  },
+  "transporters": {
+    "3eTuvLgiKeVUT7MXiFrWCh2tmPD2": {
+      "address": "[object Object]",
+      "createdAt": "2025-03-12T17:44:18.051Z",
+      "email": "sha1@gmail.com",
+      "fullName": "abc",
+      "joiningDate": "2025-03-15",
+      "name": "undefined",
+      "phone": "1234567890",
+      "position": "Driver",
+      "role": "Transporter",
+      "status": "active",
+      "uid": "undefined",
+      "updatedAt": "2025-03-14T07:19:53.092Z"
+    },
+    "EyQzhteX6gc9h1u6UjLLG7t9oHa2": {
+      "address": {
+        "city": "bengaluru",
+        "country": "India",
+        "state": "karanataka",
+        "street": "abc nilaya",
+        "zipCode": "560064"
+      },
+      "assignedRoutes": {
+        "-OKqSQGr9t2YmVpCLCp8": true
+      },
+      "createdAt": "2025-03-12T16:49:27.533Z",
+      "email": "vvv@gmail.com",
+      "fullName": "manja",
+      "joiningDate": "2025-03-13",
+      "name": "abc",
+      "phone": "11232456456",
+      "position": "Driver",
+      "status": "inactive",
+      "totalLeaves": 20,
+      "uid": "EyQzhteX6gc9h1u6UjLLG7t9oHa2",
+      "updatedAt": "2025-03-15T07:24:33.789Z",
+      "usedLeaves": 1
+    }
+  },
+  "users": {
+    "0FmLPabCfvRQKVHlafjkvXfwXnu2": {
+      "accountStatus": "Active",
+      "email": "jkl@gmail.com",
+      "fullName": "shash",
+      "role": "Public"
+    },
+    "3eTuvLgiKeVUT7MXiFrWCh2tmPD2": {
+      "address": "[object Object]",
+      "createdAt": "2025-03-12T17:44:18.051Z",
+      "email": "sha1@gmail.com",
+      "fullName": "abc",
+      "joiningDate": "2025-03-15",
+      "name": "undefined",
+      "phone": "1234567890",
+      "position": "Driver",
+      "role": "transporter",
+      "status": "active",
+      "uid": "undefined",
+      "updatedAt": "2025-03-14T07:19:53.092Z"
+    },
+    "EyQzhteX6gc9h1u6UjLLG7t9oHa2": {
+      "address": {
+        "city": "bengaluru",
+        "country": "India",
+        "state": "karanataka",
+        "street": "abc nilaya",
+        "zipCode": "560064"
+      },
+      "createdAt": "2025-03-12T16:49:27.533Z",
+      "email": "vvv@gmail.com",
+      "fullName": "manja",
+      "joiningDate": "2025-03-13",
+      "name": "abc",
+      "phone": "11232456456",
+      "position": "Driver",
+      "role": "transporter",
+      "status": "inactive",
+      "uid": "EyQzhteX6gc9h1u6UjLLG7t9oHa2",
+      "updatedAt": "2025-03-15T07:24:33.789Z"
+    },
+    "JDAr0t5pxQX7RBGjEpkj9g4oiCB3": {
+      "address": "[object Object]",
+      "createdAt": "2025-03-12T17:00:04.751Z",
+      "email": "sha@gmail.com",
+      "fullName": "abc",
+      "joiningDate": "2025-03-14",
+      "name": "undefined",
+      "phone": "1234567890",
+      "position": "",
+      "role": "public",
+      "status": "active",
+      "uid": "undefined",
+      "updatedAt": "2025-03-15T07:18:14.711Z"
+    },
+    "TndoGulIWCd2mPEdBkwM7ITernH2": {
+      "Phone": "1234567890",
+      "accountStatus": "Active",
+      "email": "ghi@gmail.com",
+      "fullName": "Transporter",
+      "role": "Transporter"
+    },
+    "WrSp5J5i3mU90DTXyDX0yluM3Bu2": {
+      "address": "sfdgdff",
+      "createdAt": "2025-03-09T12:52:19.393Z",
+      "email": "ab12@gmail.com",
+      "joiningDate": "2025-03-07",
+      "name": "abcd",
+      "phone": "123456789",
+      "position": "",
+      "role": "public",
+      "status": "inactive",
+      "uid": "WrSp5J5i3mU90DTXyDX0yluM3Bu2",
+      "updatedAt": "2025-03-15T07:27:35.788Z"
+    },
+    "ZN71qhtukaZC9MpymZWi3B8no5A3": {
+      "address": {
+        "city": "Banaglore",
+        "country": "India",
+        "state": "karanataka",
+        "street": "abc nilaya, 5th phase yelahanka",
+        "zipCode": "560064"
+      },
+      "createdAt": "2025-03-14T07:26:04.104Z",
+      "email": "def@gmail.com",
+      "fullName": "abc",
+      "fullname": "abc",
+      "joiningDate": "2025-03-15",
+      "phone": "12345678911",
+      "role": "Admin"
+    },
+    "hqZerAHSzwXojGosJ5fjoT5VclG2": {
+      "Phone": "1234567890",
+      "accountStatus": "Active",
+      "email": "abc@gmail.com",
+      "fullName": "public",
+      "role": "Public"
+    }
+  }
+}

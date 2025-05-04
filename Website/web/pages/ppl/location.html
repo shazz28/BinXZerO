@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nearest Route - BinXZer0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+        }
+        #detailMap {
+            height: 250px;
+            border-radius: 8px;
+        }
+        .route-actions { display: flex; gap: 10px; }
+        .info-window { padding: 5px; }
+        .info-window h6 { margin: 0 0 5px; color: #28a745; }
+        .info-window p { margin: 0; font-size: 0.9em; }
+        .map-controls {
+            position: absolute; top: 10px; left: 10px; z-index: 2;
+            background: white; padding: 10px; border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .map-controls .btn.active {
+            background-color: #28a745;
+            color: white;
+        }
+        .leaflet-popup-content h6 { color: #28a745; margin-bottom: 5px; }
+        .route-card { transition: transform 0.2s ease; }
+        .route-card:hover { transform: translateY(-2px); }
+        .notification { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .quick-link-btn {
+            transition: background-color 0.3s ease;
+        }
+        .quick-link-btn:hover {
+            background-color: #28a745;
+            color: white;
+        }
+        .modal-content {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .modal-header {
+            border-bottom: 1px solid #dee2e6;
+        }
+        .modal-footer {
+            border-top: 1px solid #dee2e6;
+        }
+        .btn-success {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
+        }
+        .loading-spinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1050;
+        }
+        .table th {
+            cursor: pointer;
+        }
+        .table th:hover {
+            background-color: #e9ecef;
+        }
+        .table th.active {
+            background-color: #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Placeholder -->
+    <div id="navbar-placeholder"></div>
+
+    <!-- Main Content -->
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Nearest Route</h1>
+        </div>
+
+        <!-- Map Container -->
+        <div class="position-relative mb-4">
+            <div id="map"></div>
+            <div class="map-controls">
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-success active" id="streetLayerBtn" data-bs-toggle="tooltip" title="Switch to street view">
+                        <i class="fas fa-road"></i> Street
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" id="satelliteLayerBtn" data-bs-toggle="tooltip" title="Switch to satellite view">
+                        <i class="fas fa-satellite"></i> Satellite
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" id="setLocationBtn" data-bs-toggle="tooltip" title="Set your location">
+                        <i class="fas fa-map-marker-alt"></i> Set Location
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Route Summary Cards -->
+        <div class="row g-4 mb-4" id="routeSummaryCards">
+            <!-- Dynamically populated -->
+        </div>
+
+        <!-- Nearest Route Details -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Nearest Route Details</h5>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Route Name</th>
+                                <th>Start Point</th>
+                                <th>End Point</th>
+                                <th>Status</th>
+                                <th>Distance (km)</th>
+                                <th>Distance from You (km)</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="routesList">
+                            <!-- Nearest route will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Route Details Modal -->
+    <div class="modal fade" id="routeDetailsModal" tabindex="-1" aria-labelledby="routeDetailsTitle">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="routeDetailsTitle">Route Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Start Point:</h6>
+                            <p id="detailStartPoint"></p>
+                            <h6>End Point:</h6>
+                            <p id="detailEndPoint"></p>
+                            <h6>Status:</h6>
+                            <p id="detailStatus"></p>
+                            <h6>Distance:</h6>
+                            <p id="detailDistance"></p>
+                            <h6>Description:</h6>
+                            <p id="detailDescription"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="detailMap"></div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <h6>Waypoints:</h6>
+                        <ul id="detailWaypoints" class="list-group">
+                            <!-- Waypoints will be populated here -->
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" id="zoomToRouteBtn" aria-label="Zoom to route on map">Zoom to Route</button>
+                    <button type="button" class="btn btn-success" id="startNavigationBtn" aria-label="Start navigation">Start Navigation</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
+        <div id="notificationToast" class="toast notification" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto" id="toastTitle">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage"></div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loadingSpinner" style="display: none;">
+        <div class="spinner-border text-success" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Footer Placeholder -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-database-compat.js"></script>
+    <script src="/assets/js/apikeys.js"></script>
+    <script type="module" src="/assets/js/logout-ui.js"></script>
+    <script>
+        // Load navigation and footer
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load navigation
+            const navPlaceholder = document.getElementById('navbar-placeholder');
+            if (!navPlaceholder) {
+                console.error('Navigation placeholder not found');
+                return;
+            }
+            fetch('/assets/templates/pplnav.html')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch pplnav.html: ${response.status} ${response.statusText}`);
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    navPlaceholder.innerHTML = data;
+                    const dropdowns = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+                    dropdowns.forEach(dropdown => new bootstrap.Dropdown(dropdown));
+                })
+                .catch(error => {
+                    console.error('Error loading navigation:', error);
+                    navPlaceholder.innerHTML = '<div class="alert alert-danger">Failed to load navigation. Please refresh.</div>';
+                });
+
+            // Load footer
+            const footerPlaceholder = document.getElementById('footer-placeholder');
+            if (!footerPlaceholder) {
+                console.error('Footer placeholder not found');
+                return;
+            }
+            fetch('/assets/templates/bottomnav.html')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch bottomnav.html: ${response.status} ${response.statusText}`);
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    footerPlaceholder.innerHTML = data;
+                })
+                .catch(error => {
+                    console.error('Error loading footer:', error);
+                    footerPlaceholder.innerHTML = '<div class="alert alert-danger">Failed to load footer. Please refresh.</div>';
+                });
+        });
+
+        // Firebase initialization
+        if (!window.apiKeys || !window.apiKeys.firebase) {
+            console.error('Firebase configuration not found');
+            document.body.innerHTML = '<div class="alert alert-danger">Error: Application configuration is missing. Please contact support.</div>';
+        } else {
+            firebase.initializeApp(window.apiKeys.firebase);
+            const database = firebase.database();
+            const auth = firebase.auth();
+
+            let map;
+            let detailMap = null;
+            let currentMapLayer = 'street';
+            let routePolylines = {};
+            let markers = [];
+            let allRoutes = [];
+            let nearestRoute = null;
+            let userLocation = null;
+            let userMarker = null;
+            let isSettingLocation = false;
+
+            // Initialize on page load
+            document.addEventListener('DOMContentLoaded', () => {
+                initMap();
+                setupAuthListener();
+                setupEventListeners();
+                enableTooltips();
+            });
+
+            // Authentication state listener
+            function setupAuthListener() {
+                auth.onAuthStateChanged(user => {
+                    if (user) {
+                        showLoadingSpinner();
+                        loadAllRoutes();
+                    } else {
+                        window.location.href = '/login.html';
+                    }
+                });
+            }
+
+            // Initialize the map
+            function initMap() {
+                map = L.map('map').setView([13.1005, 77.5890], 12); // Default to Yelahanka
+                setMapLayer('street');
+                showNotification('Info', 'Click the "Set Location" button and then click on the map to set your location.');
+            }
+
+            // Set map layer (street or satellite)
+            function setMapLayer(type) {
+                map.eachLayer(layer => {
+                    if (layer instanceof L.TileLayer) map.removeLayer(layer);
+                });
+                if (type === 'street') {
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(map);
+                } else if (type === 'satellite') {
+                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                        attribution: 'Tiles © Esri'
+                    }).addTo(map);
+                }
+                currentMapLayer = type;
+                drawRoutes();
+            }
+
+            // Parse a single coordinate pair from a string in "Location (lat, lon)" format
+            function parseCoordinates(coordStr) {
+                if (!coordStr) {
+                    console.warn('Coordinate string is empty or null:', coordStr);
+                    return [0, 0];
+                }
+                if (Array.isArray(coordStr)) {
+                    console.log('Coordinates already in array format:', coordStr);
+                    return coordStr.map(Number);
+                }
+                if (typeof coordStr !== 'string') {
+                    console.warn('Invalid coordinate format (not a string):', coordStr);
+                    return [0, 0];
+                }
+                // Match "Location (lat, lon)" format
+                const match = coordStr.match(/Location\s*\((\d+\.\d+),\s*(\d+\.\d+)\)/i);
+                if (match) {
+                    const coords = [parseFloat(match[1]), parseFloat(match[2])];
+                    console.log('Parsed coordinates from regex:', coords);
+                    return coords;
+                }
+                // Fallback for "lat,lon" format
+                const coords = coordStr.split(',').map(num => parseFloat(num.trim())).filter(n => !isNaN(n));
+                if (coords.length === 2) {
+                    console.log('Parsed coordinates from split:', coords);
+                    return coords;
+                }
+                console.warn('Failed to parse coordinates, returning default:', coordStr);
+                return [0, 0];
+            }
+
+            // Format coordinates for display
+            function formatCoordinates(coords) {
+                if (!coords || coords.length !== 2) return 'Invalid coordinates';
+                return `Location (${coords[0].toFixed(4)}, ${coords[1].toFixed(4)})`;
+            }
+
+            // Calculate distance between two points (Haversine formula)
+            function calculateDistance(point1, point2) {
+                if (!point1 || !point2 || point1.length !== 2 || point2.length !== 2) {
+                    console.warn('Invalid points for distance calculation:', point1, point2);
+                    return Infinity;
+                }
+                const lat1 = point1[0];
+                const lon1 = point1[1];
+                const lat2 = point2[0];
+                const lon2 = point2[1];
+                const R = 6371; // Earth's radius in km
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                const distance = R * c;
+                console.log(`Distance between ${point1} and ${point2}: ${distance.toFixed(2)} km`);
+                return distance;
+            }
+
+            // Calculate total route distance
+            function calculateRouteDistance(points) {
+                if (!points || points.length < 2) {
+                    console.warn('Not enough points to calculate route distance:', points);
+                    return 0;
+                }
+                let totalDistance = 0;
+                for (let i = 0; i < points.length - 1; i++) {
+                    const dist = calculateDistance(points[i], points[i + 1]);
+                    if (dist !== Infinity) totalDistance += dist;
+                }
+                console.log('Total route distance:', totalDistance.toFixed(2));
+                return totalDistance.toFixed(2);
+            }
+
+            // Load all routes from Firebase
+            function loadAllRoutes() {
+                const routesRef = database.ref('routes');
+                routesRef.on('value', (routesSnapshot) => {
+                    const allRoutesData = routesSnapshot.val() || {};
+                    console.log('Raw routes data from Firebase:', allRoutesData);
+                    allRoutes = Object.entries(allRoutesData).map(([routeId, route]) => {
+                        const waypoints = Array.isArray(route.waypoints) ? route.waypoints.map(wp => ({
+                            name: wp.name || 'Unnamed Waypoint',
+                            coordinates: parseCoordinates(wp.coordinates)
+                        })) : [];
+                        const start = parseCoordinates(route.startPoint);
+                        const end = parseCoordinates(route.endPoint);
+                        const points = [start, ...waypoints.map(w => w.coordinates), end];
+                        return {
+                            id: routeId,
+                            name: route.routeName || 'Unnamed Route',
+                            start: start,
+                            startPoint: route.startPoint,
+                            end: end,
+                            endPoint: route.endPoint,
+                            waypoints,
+                            status: route.status || 'inactive',
+                            description: route.description || '',
+                            distance: calculateRouteDistance(points),
+                            assignedTo: route.assignedTo || 'Unassigned'
+                        };
+                    });
+                    console.log('Processed routes:', allRoutes);
+                    updateUI();
+                    hideLoadingSpinner();
+                    if (allRoutes.length === 0) {
+                        showNotification('Info', 'No routes available.');
+                    }
+                }, error => {
+                    showNotification('Error', `Failed to load routes: ${error.message}`);
+                    hideLoadingSpinner();
+                });
+            }
+
+            // Setup event listeners
+            function setupEventListeners() {
+                const elements = {
+                    streetLayerBtn: document.getElementById('streetLayerBtn'),
+                    satelliteLayerBtn: document.getElementById('satelliteLayerBtn'),
+                    setLocationBtn: document.getElementById('setLocationBtn'),
+                    zoomToRouteBtn: document.getElementById('zoomToRouteBtn'),
+                    startNavigationBtn: document.getElementById('startNavigationBtn')
+                };
+
+                if (elements.streetLayerBtn) elements.streetLayerBtn.addEventListener('click', () => {
+                    setMapLayer('street');
+                    elements.streetLayerBtn.classList.add('active');
+                    elements.satelliteLayerBtn.classList.remove('active');
+                });
+                if (elements.satelliteLayerBtn) elements.satelliteLayerBtn.addEventListener('click', () => {
+                    setMapLayer('satellite');
+                    elements.satelliteLayerBtn.classList.add('active');
+                    elements.streetLayerBtn.classList.remove('active');
+                });
+                if (elements.setLocationBtn) elements.setLocationBtn.addEventListener('click', toggleSetLocationMode);
+                if (elements.zoomToRouteBtn) elements.zoomToRouteBtn.addEventListener('click', () => {
+                    const routeId = document.getElementById('routeDetailsTitle')?.dataset.routeId;
+                    if (routeId) zoomToRoute(routeId);
+                });
+                if (elements.startNavigationBtn) elements.startNavigationBtn.addEventListener('click', () => {
+                    const routeId = document.getElementById('routeDetailsTitle')?.dataset.routeId;
+                    if (routeId) startNavigation(routeId);
+                });
+            }
+
+            // Enable tooltips
+            function enableTooltips() {
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(element => new bootstrap.Tooltip(element));
+            }
+
+            // Toggle location setting mode
+            function toggleSetLocationMode() {
+                isSettingLocation = !isSettingLocation;
+                const setLocationBtn = document.getElementById('setLocationBtn');
+                if (isSettingLocation) {
+                    setLocationBtn.classList.add('active');
+                    setLocationBtn.classList.remove('btn-outline-primary');
+                    setLocationBtn.classList.add('btn-primary');
+                    map.on('click', setUserLocation);
+                    showNotification('Info', 'Click on the map to set your location.');
+                } else {
+                    setLocationBtn.classList.remove('active');
+                    setLocationBtn.classList.add('btn-outline-primary');
+                    setLocationBtn.classList.remove('btn-primary');
+                    map.off('click', setUserLocation);
+                }
+            }
+
+            // Set user location on map click
+            function setUserLocation(e) {
+                userLocation = [e.latlng.lat, e.latlng.lng];
+                console.log('User location set:', userLocation);
+                if (userMarker) map.removeLayer(userMarker);
+                userMarker = L.marker(userLocation, {
+                    draggable: true,
+                    icon: L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div style="background-color:#007bff;width:14px;height:14px;border-radius:50%;border:2px solid white;"></div>`,
+                        iconSize: [14, 14],
+                        iconAnchor: [7, 7]
+                    })
+                }).addTo(map);
+                userMarker.bindPopup('<div class="info-window"><h6>Your Location</h6><p>Drag to adjust</p></div>');
+                userMarker.on('dragend', () => {
+                    userLocation = [userMarker.getLatLng().lat, userMarker.getLatLng().lng];
+                    console.log('User location updated after drag:', userLocation);
+                    updateUI();
+                });
+                markers.push(userMarker);
+                toggleSetLocationMode();
+                showNotification('Success', 'Location set successfully.');
+                updateUI();
+            }
+
+            // Show loading spinner
+            function showLoadingSpinner() {
+                const spinner = document.getElementById('loadingSpinner');
+                if (spinner) spinner.style.display = 'block';
+            }
+
+            // Hide loading spinner
+            function hideLoadingSpinner() {
+                const spinner = document.getElementById('loadingSpinner');
+                if (spinner) spinner.style.display = 'none';
+            }
+
+            // Update UI based on user location
+            function updateUI() {
+                console.log('Updating UI...');
+                console.log('User location:', userLocation);
+                console.log('All routes:', allRoutes);
+
+                if (!userLocation) {
+                    nearestRoute = null;
+                    console.log('No user location set, clearing nearest route.');
+                    updateSummaryCards();
+                    loadRoutes();
+                    drawRoutes();
+                    fitMapToRoutes();
+                    return;
+                }
+
+                // Calculate distance from user to each route's start point
+                allRoutes.forEach(route => {
+                    route.distanceFromUser = calculateDistance(userLocation, route.start);
+                    console.log(`Distance from user to route ${route.name}: ${route.distanceFromUser.toFixed(2)} km`);
+                });
+
+                // Find the nearest route
+                nearestRoute = allRoutes.reduce((nearest, route) => {
+                    if (!nearest || route.distanceFromUser < nearest.distanceFromUser) return route;
+                    return nearest;
+                }, null);
+
+                console.log('Nearest route:', nearestRoute);
+
+                updateSummaryCards();
+                loadRoutes();
+                drawRoutes();
+                fitMapToRoutes();
+            }
+
+            // Update summary cards
+            function updateSummaryCards() {
+                const summaryCards = document.getElementById('routeSummaryCards');
+                if (!summaryCards) return;
+                summaryCards.innerHTML = `
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white route-card">
+                            <div class="card-body">
+                                <h5 class="card-title">Your Location</h5>
+                                <p class="card-text">${userLocation ? formatCoordinates(userLocation) : 'Not set'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white route-card">
+                            <div class="card-body">
+                                <h5 class="card-title">Nearest Route</h5>
+                                <p class="card-text">${nearestRoute ? nearestRoute.name : 'Not available'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-warning text-white route-card">
+                            <div class="card-body">
+                                <h5 class="card-title">Distance to Route</h5>
+                                <p class="card-text">${nearestRoute ? nearestRoute.distanceFromUser.toFixed(2) + ' km' : 'N/A'}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Draw routes on the map (only the nearest route)
+            function drawRoutes() {
+                console.log('Drawing routes...');
+                Object.values(routePolylines).forEach(polyline => map.removeLayer(polyline));
+                routePolylines = {};
+                markers.forEach(marker => {
+                    if (marker !== userMarker) map.removeLayer(marker);
+                });
+                markers = userMarker ? [userMarker] : [];
+
+                if (!userLocation || !nearestRoute) {
+                    console.log('Cannot draw route: userLocation or nearestRoute is missing.');
+                    return;
+                }
+
+                console.log('Drawing nearest route:', nearestRoute);
+
+                const points = [nearestRoute.start, ...nearestRoute.waypoints.map(w => w.coordinates), nearestRoute.end];
+                console.log('Route points:', points);
+                const color = getStatusColor(nearestRoute.status);
+                const polyline = L.polyline(points, { color, weight: 4, opacity: 0.7 }).addTo(map);
+                polyline.on('click', () => viewRouteDetails(nearestRoute.id));
+                polyline.on('mouseover', () => polyline.setStyle({ weight: 6, opacity: 1 }));
+                polyline.on('mouseout', () => polyline.setStyle({ weight: 4, opacity: 0.7 }));
+                routePolylines[nearestRoute.id] = polyline;
+
+                const startMarker = L.marker(nearestRoute.start, {
+                    icon: L.divIcon({ 
+                        className: 'custom-div-icon', 
+                        html: `<div style="background-color:#28a745;width:12px;height:12px;border-radius:50%;border:2px solid white;"></div>`, 
+                        iconSize: [12, 12], 
+                        iconAnchor: [6, 6] 
+                    })
+                }).addTo(map);
+                startMarker.bindPopup(`<div class="info-window"><h6>${nearestRoute.name}</h6><p>Start: ${nearestRoute.startPoint}</p></div>`);
+                markers.push(startMarker);
+
+                const endMarker = L.marker(nearestRoute.end, {
+                    icon: L.divIcon({ 
+                        className: 'custom-div-icon', 
+                        html: `<div style="background-color:#dc3545;width:12px;height:12px;border-radius:50%;border:2px solid white;"></div>`, 
+                        iconSize: [12, 12], 
+                        iconAnchor: [6, 6] 
+                    })
+                }).addTo(map);
+                endMarker.bindPopup(`<div class="info-window"><h6>${nearestRoute.name}</h6><p>End: ${nearestRoute.endPoint}</p></div>`);
+                markers.push(endMarker);
+
+                nearestRoute.waypoints.forEach(wp => {
+                    const wpMarker = L.marker(wp.coordinates, {
+                        icon: L.divIcon({ 
+                            className: 'custom-div-icon', 
+                            html: `<div style="background-color:#17a2b8;width:10px;height:10px;border-radius:50%;border:2px solid white;"></div>`, 
+                            iconSize: [10, 10], 
+                            iconAnchor: [5, 5] 
+                        })
+                    }).addTo(map);
+                    wpMarker.bindPopup(`<div class="info-window"><h6>${wp.name}</h6><p>Waypoint</p></div>`);
+                    markers.push(wpMarker);
+                });
+            }
+
+            // Fit map to show user location and nearest route
+            function fitMapToRoutes() {
+                if (!userLocation) {
+                    map.setView([13.1005, 77.5890], 12);
+                    return;
+                }
+                const bounds = L.latLngBounds();
+                bounds.extend(userLocation);
+                if (nearestRoute) {
+                    bounds.extend(nearestRoute.start);
+                    bounds.extend(nearestRoute.end);
+                    nearestRoute.waypoints.forEach(wp => bounds.extend(wp.coordinates));
+                }
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+
+            // Show route details modal
+            function viewRouteDetails(routeId) {
+                if (!nearestRoute || nearestRoute.id !== routeId) {
+                    showNotification('Error', 'Route not found.');
+                    return;
+                }
+
+                document.getElementById('routeDetailsTitle').textContent = nearestRoute.name;
+                document.getElementById('routeDetailsTitle').dataset.routeId = routeId;
+                document.getElementById('detailStartPoint').textContent = nearestRoute.startPoint;
+                document.getElementById('detailEndPoint').textContent = nearestRoute.endPoint;
+                const statusText = nearestRoute.status.charAt(0).toUpperCase() + nearestRoute.status.slice(1);
+                const statusClass = getStatusClass(nearestRoute.status);
+                document.getElementById('detailStatus').innerHTML = `<span class="badge ${statusClass}">${statusText}</span>`;
+                document.getElementById('detailDistance').textContent = `${nearestRoute.distance} km`;
+                document.getElementById('detailDescription').textContent = nearestRoute.description || 'No description available';
+
+                const waypointsList = document.getElementById('detailWaypoints');
+                waypointsList.innerHTML = '';
+                if (nearestRoute.waypoints.length === 0) {
+                    waypointsList.innerHTML = '<li class="list-group-item">No waypoints defined</li>';
+                } else {
+                    nearestRoute.waypoints.forEach((waypoint, index) => {
+                        const item = document.createElement('li');
+                        item.className = 'list-group-item';
+                        item.textContent = `${index + 1}. ${waypoint.name} (${waypoint.coordinates[0].toFixed(4)}, ${waypoint.coordinates[1].toFixed(4)})`;
+                        waypointsList.appendChild(item);
+                    });
+                }
+
+                if (detailMap) detailMap.remove();
+                setTimeout(() => {
+                    try {
+                        detailMap = L.map('detailMap').setView([nearestRoute.start[0], nearestRoute.start[1]], 11);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors'
+                        }).addTo(detailMap);
+                        const points = [nearestRoute.start, ...nearestRoute.waypoints.map(w => w.coordinates), nearestRoute.end];
+                        L.polyline(points, { color: getStatusColor(nearestRoute.status), weight: 4, opacity: 0.7 }).addTo(detailMap);
+                        L.marker(nearestRoute.start, {
+                            icon: L.divIcon({ 
+                                className: 'custom-div-icon', 
+                                html: `<div style="background-color:#28a745;width:12px;height:12px;border-radius:50%;border:2px solid white;"></div>`, 
+                                iconSize: [12, 12], 
+                                iconAnchor: [6, 6] 
+                            })
+                        }).addTo(detailMap).bindPopup(`Start: ${nearestRoute.startPoint}`);
+                        L.marker(nearestRoute.end, {
+                            icon: L.divIcon({ 
+                                className: 'custom-div-icon', 
+                                html: `<div style="background-color:#dc3545;width:12px;height:12px;border-radius:50%;border:2px solid white;"></div>`, 
+                                iconSize: [12, 12], 
+                                iconAnchor: [6, 6] 
+                            })
+                        }).addTo(detailMap).bindPopup(`End: ${nearestRoute.endPoint}`);
+                        nearestRoute.waypoints.forEach(wp => {
+                            L.marker(wp.coordinates, {
+                                icon: L.divIcon({ 
+                                    className: 'custom-div-icon', 
+                                    html: `<div style="background-color:#17a2b8;width:10px;height:10px;border-radius:50%;border:2px solid white;"></div>`, 
+                                    iconSize: [10, 10], 
+                                    iconAnchor: [5, 5] 
+                                })
+                            }).addTo(detailMap).bindPopup(wp.name);
+                        });
+                        detailMap.fitBounds(L.latLngBounds(points), { padding: [30, 30] });
+                    } catch (error) {
+                        console.error("Error initializing detail map:", error);
+                        showNotification('Error', 'Failed to load route details map.');
+                    }
+                }, 100);
+
+                showModal('routeDetailsModal');
+            }
+
+            // Load nearest route into table
+            function loadRoutes() {
+                const routesList = document.getElementById('routesList');
+                if (!routesList) return;
+                routesList.innerHTML = '';
+
+                if (!userLocation) {
+                    routesList.innerHTML = '<tr><td colspan="7" class="text-center">Please set your location to find the nearest route.</td></tr>';
+                    return;
+                }
+
+                if (!nearestRoute) {
+                    routesList.innerHTML = '<tr><td colspan="7" class="text-center">No routes available.</td></tr>';
+                    return;
+                }
+
+                const statusClass = getStatusClass(nearestRoute.status);
+                const statusText = nearestRoute.status.charAt(0).toUpperCase() + nearestRoute.status.slice(1);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${nearestRoute.name}</td>
+                    <td>${nearestRoute.startPoint}</td>
+                    <td>${nearestRoute.endPoint}</td>
+                    <td><span class="badge ${statusClass}">${statusText}</span></td>
+                    <td>${nearestRoute.distance}</td>
+                    <td>${nearestRoute.distanceFromUser.toFixed(2)}</td>
+                    <td class="route-actions">
+                        <button class="btn btn-sm btn-outline-primary view-details-btn" data-route-id="${nearestRoute.id}" aria-label="View details of route ${nearestRoute.name}"><i class="fas fa-eye"></i></button>
+                    </td>`;
+                routesList.appendChild(row);
+
+                const viewButton = row.querySelector('.view-details-btn');
+                viewButton.addEventListener('click', () => viewRouteDetails(nearestRoute.id));
+            }
+
+            // Zoom to route on main map
+            function zoomToRoute(routeId) {
+                if (!nearestRoute || nearestRoute.id !== routeId) return;
+                const points = [nearestRoute.start, ...nearestRoute.waypoints.map(w => w.coordinates), nearestRoute.end];
+                const bounds = L.latLngBounds(points);
+                map.fitBounds(bounds, { padding: [50, 50] });
+                hideModal('routeDetailsModal');
+            }
+
+            // Start navigation (open Google Maps)
+            function startNavigation(routeId) {
+                if (!nearestRoute || nearestRoute.id !== routeId) {
+                    showNotification('Error', 'Route not found.');
+                    return;
+                }
+                const start = nearestRoute.start;
+                const end = nearestRoute.end;
+                const waypoints = nearestRoute.waypoints.map(wp => `${wp.coordinates[0]},${wp.coordinates[1]}`).join('|');
+                const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${start[0]},${start[1]}&destination=${end[0]},${end[1]}&waypoints=${waypoints}&travelmode=driving`;
+                window.open(googleMapsUrl, '_blank');
+            }
+
+            // Get status class for badge
+            function getStatusClass(status) {
+                switch (status) {
+                    case 'active': return 'bg-success';
+                    case 'inactive': return 'bg-danger';
+                    case 'maintenance': return 'bg-warning';
+                    default: return 'bg-secondary';
+                }
+            }
+
+            // Get status color for polyline
+            function getStatusColor(status) {
+                switch (status) {
+                    case 'active': return '#28a745';
+                    case 'inactive': return '#dc3545';
+                    case 'maintenance': return '#ffc107';
+                    default: return '#6c757d';
+                }
+            }
+
+            // Show notification
+            function showNotification(title, message) {
+                const toastTitle = document.getElementById('toastTitle');
+                const toastMessage = document.getElementById('toastMessage');
+                if (toastTitle && toastMessage) {
+                    toastTitle.textContent = title;
+                    toastMessage.textContent = message;
+                    const toast = new bootstrap.Toast(document.getElementById('notificationToast'));
+                    toast.show();
+                }
+            }
+
+            // Show modal
+            function showModal(modalId) {
+                const modal = new bootstrap.Modal(document.getElementById(modalId));
+                modal.show();
+            }
+
+            // Hide modal
+            function hideModal(modalId) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
+                if (modal) modal.hide();
+            }
+        }
+    </script>
+</body>
+</html>

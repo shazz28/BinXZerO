@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Smart Waste Management System - Find nearby bins in Yelahanka">
+    <title>Nearby Bins - BinXZer0</title>
+    <!-- Bootstrap CSS for consistency with templates -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #198754; /* Green shade matching the screenshot */
+            --secondary-color: #343a40; /* Dark gray for footer */
+        }
+        #map {
+            height: 700px;
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        @media (max-height: 700px) {
+            #map {
+                height: 400px;
+            }
+        }
+        .bin-status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            display: inline-block;
+        }
+        .bin-status-full { background-color: #dc2626; }
+        .bin-status-medium { background-color: #f59e0b; }
+        .bin-status-low { background-color: #22c55e; }
+        .loading, .error {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #6b7280;
+        }
+        .navigate-btn, .report-full-btn {
+            transition: transform 0.2s ease;
+        }
+        .navigate-btn:hover, .report-full-btn:hover {
+            transform: translateY(-2px);
+        }
+        .bin-list-card {
+            max-height: 700px;
+            overflow-y: auto;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .nav-ylink.active {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Placeholder -->
+    <div id="navbar-placeholder"></div>
+
+    <div class="container mt-4">
+        <div class="row g-4">
+            <div class="col-lg-8 position-relative">
+                <div class="d-flex gap-2 position-absolute top-0 start-0 mt-3 ms-3 z-3">
+                    <button id="marker-btn" class="btn text-white shadow-sm" style="background-color: var(--primary-color);" title="Place marker at your location">
+                        <i class="fas fa-map-marker-alt me-2"></i>Marker
+                    </button>
+                    <button id="set-location-btn" class="btn text-white shadow-sm" style="background-color: var(--primary-color);" title="Manually set your location on the map">
+                        <i class="fas fa-map-pin me-2"></i>Set Location
+                    </button>
+                </div>
+                <div class="position-absolute top-0 end-0 mt-3 me-3 z-3 bg-white p-2 rounded shadow-sm">
+                    <div class="d-flex gap-2">
+                        <input type="radio" class="btn-check" name="mapType" id="streetMap" autocomplete="off" checked>
+                        <label class="btn btn-outline-secondary btn-sm" for="streetMap">
+                            <i class="fas fa-road me-1"></i>Street
+                        </label>
+                        <input type="radio" class="btn-check" name="mapType" id="satelliteMap" autocomplete="off">
+                        <label class="btn btn-outline-secondary btn-sm" for="satelliteMap">
+                            <i class="fas fa-satellite me-1"></i>Satellite
+                        </label>
+                    </div>
+                </div>
+                <div id="map" class="fade-in"></div>
+            </div>
+            <div class="col-lg-4">
+                <div class="bin-list-card bg-white">
+                    <div class="card-header p-3 border-bottom d-flex justify-content-between align-items-center">
+                        <h2 class="h5 mb-0 text-dark">
+                            <i class="fas fa-trash-alt me-2 text-success"></i>Nearby Bins
+                        </h2>
+                        <span id="bins-count" class="bg-light text-muted px-2 py-1 rounded-pill small">0</span>
+                    </div>
+                    <div class="p-3">
+                        <input type="text" id="bin-search" class="form-control mb-3" placeholder="Search bins by name or type...">
+                        <ul class="nav nav-pills mb-3 gap-2">
+                            <li class="nav-item flex-fill text-center">
+                                <a class="nav-link nav-ylink active text-white" style="background-color: var(--primary-color);" data-type="all" href="#">All</a>
+                            </li>
+                            <li class="nav-item flex-fill text-center">
+                                <a class="nav-link nav-ylink text-white" style="background-color: var(--primary-color);" data-type="general" href="#">General</a>
+                            </li>
+                            <li class="nav-item flex-fill text-center">
+                                <a class="nav-link nav-ylink text-white" style="background-color: var(--primary-color);" data-type="recycling" href="#">Recycling</a>
+                            </li>
+                            <li class="nav-item flex-fill text-center">
+                                <a class="nav-link nav-ylink text-white" style="background-color: var(--primary-color);" data-type="organic" href="#">Organic</a>
+                            </li>
+                        </ul>
+                        <div id="bin-list" class="space-y-3">
+                            <div class="loading">Place a marker to see nearby bins...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder" class="mt-4"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-database-compat.js"></script>
+    <script src="/assets/js/apikeys.js"></script>
+    <script type="module" src="/assets/js/logout-ui.js"></script>
+
+    <script>
+        // Load Google Maps API dynamically using the key from apikeys.js
+        function loadGoogleMapsAPI() {
+            if (!window.apiKeys || !window.apiKeys.GOOGLE_MAPS_API_KEY) {
+                console.error('Google Maps API key is missing');
+                alert('Configuration error: Google Maps API key not found. Please contact support.');
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${window.apiKeys.GOOGLE_MAPS_API_KEY}&libraries=geometry&callback=initMap`;
+            script.async = true;
+            script.defer = true;
+            script.onerror = () => {
+                console.error('Failed to load Google Maps API');
+                alert('Failed to load Google Maps. Please check your internet connection and try again.');
+            };
+            document.head.appendChild(script);
+        }
+
+        // Load navigation and footer
+        function loadTemplates() {
+            const navPlaceholder = document.getElementById('navbar-placeholder');
+            if (navPlaceholder) {
+                fetch('/assets/templates/pplnav.html')
+                    .then(response => {
+                        if (!response.ok) throw new Error(`Failed to fetch pplnav.html: ${response.status}`);
+                        return response.text();
+                    })
+                    .then(data => {
+                        navPlaceholder.innerHTML = DOMPurify.sanitize(data);
+                        const dropdowns = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+                        dropdowns.forEach(dropdown => new bootstrap.Dropdown(dropdown));
+                    })
+                    .catch(error => {
+                        console.error('Error loading navigation:', error);
+                        navPlaceholder.innerHTML = '<div class="alert alert-danger">Failed to load navigation. Please refresh.</div>';
+                    });
+            }
+
+            const footerPlaceholder = document.getElementById('footer-placeholder');
+            if (footerPlaceholder) {
+                fetch('/assets/templates/bottomnav.html')
+                    .then(response => {
+                        if (!response.ok) throw new Error(`Failed to fetch bottomnav.html: ${response.status}`);
+                        return response.text();
+                    })
+                    .then(data => {
+                        footerPlaceholder.innerHTML = DOMPurify.sanitize(data);
+                    })
+                    .catch(error => {
+                        console.error('Error loading footer:', error);
+                        footerPlaceholder.innerHTML = '<div class="alert alert-danger">Failed to load footer. Please refresh.</div>';
+                    });
+            }
+        }
+
+        // Firebase initialization
+        if (!window.apiKeys || !window.apiKeys.firebase) {
+            console.error('Firebase API keys are missing');
+            alert('Configuration error. Please contact support.');
+        } else {
+            firebase.initializeApp(window.apiKeys.firebase);
+        }
+        const database = firebase.database();
+        const auth = firebase.auth();
+
+        const YELAHANKA_LAT = 13.1030;
+        const YELAHANKA_LON = 77.5790;
+
+        let map;
+        let userMarker = null;
+        let binMarkers = [];
+        let allBins = [];
+        let currentFilter = 'all';
+        let isSettingLocation = false;
+
+        // Custom icons for bin types
+        const iconUrls = {
+            general: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            recycling: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+            organic: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
+            user: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png'
+        };
+
+        function initializeMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: YELAHANKA_LAT, lng: YELAHANKA_LON },
+                zoom: 13,
+                mapTypeId: 'roadmap',
+                zoomControl: false
+            });
+
+            // Map type toggle
+            document.getElementById('streetMap').addEventListener('change', () => {
+                map.setMapTypeId('roadmap');
+            });
+            document.getElementById('satelliteMap').addEventListener('change', () => {
+                map.setMapTypeId('satellite');
+            });
+
+            // Button event listeners
+            document.getElementById('marker-btn').addEventListener('click', placeMarker);
+            document.getElementById('set-location-btn').addEventListener('click', toggleSetLocationMode);
+        }
+
+        function toggleSetLocationMode() {
+            isSettingLocation = !isSettingLocation;
+            const setLocationBtn = document.getElementById('set-location-btn');
+            if (isSettingLocation) {
+                setLocationBtn.classList.add('bg-success');
+                setLocationBtn.innerHTML = '<i class="fas fa-map-pin me-2"></i>Click on Map';
+                map.setOptions({ draggableCursor: 'crosshair' });
+                google.maps.event.addListenerOnce(map, 'click', onMapClick);
+            } else {
+                setLocationBtn.classList.remove('bg-success');
+                setLocationBtn.innerHTML = '<i class="fas fa-map-pin me-2"></i>Set Location';
+                map.setOptions({ draggableCursor: '' });
+                google.maps.event.clearListeners(map, 'click');
+            }
+        }
+
+        function onMapClick(event) {
+            if (!auth.currentUser) {
+                alert('Please log in to use this feature');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            const userLat = event.latLng.lat();
+            const userLon = event.latLng.lng();
+
+            if (userMarker) {
+                userMarker.setMap(null);
+            }
+
+            userMarker = new google.maps.Marker({
+                position: { lat: userLat, lng: userLon },
+                map: map,
+                icon: {
+                    url: iconUrls.user,
+                    scaledSize: new google.maps.Size(25, 41),
+                    anchor: new google.maps.Point(12, 41)
+                }
+            });
+
+            map.setCenter({ lat: userLat, lng: userLon });
+            map.setZoom(15);
+            fetchNearbyBins(userLat, userLon);
+            setupBinFilters(userLat, userLon);
+            toggleSetLocationMode();
+        }
+
+        function placeMarker() {
+            if (!auth.currentUser) {
+                alert('Please log in to use this feature');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userLat = position.coords.latitude;
+                        const userLon = position.coords.longitude;
+
+                        if (userMarker) {
+                            userMarker.setMap(null);
+                        }
+
+                        userMarker = new google.maps.Marker({
+                            position: { lat: userLat, lng: userLon },
+                            map: map,
+                            icon: {
+                                url: iconUrls.user,
+                                scaledSize: new google.maps.Size(25, 41),
+                                anchor: new google.maps.Point(12, 41)
+                            },
+                            title: 'Your Location'
+                        });
+
+                        new google.maps.InfoWindow({
+                            content: 'Your Location'
+                        }).open(map, userMarker);
+
+                        fetchNearbyBins(userLat, userLon);
+                        setupBinFilters(userLat, userLon);
+                        map.setCenter({ lat: userLat, lng: userLon });
+                        map.setZoom(15);
+                    },
+                    (error) => {
+                        let message;
+                        switch (error.code) {
+                            case error.PERMISSION_DENIED:
+                                message = 'Location access denied. Please enable location services.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                message = 'Location information is unavailable.';
+                                break;
+                            case error.TIMEOUT:
+                                message = 'Location request timed out.';
+                                break;
+                            default:
+                                message = 'An unknown error occurred.';
+                        }
+                        alert(message + ' Please set location manually.');
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            } else {
+                alert('Geolocation is not supported by your browser.');
+            }
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const origin = new google.maps.LatLng(lat1, lon1);
+            const destination = new google.maps.LatLng(lat2, lon2);
+            return google.maps.geometry.spherical.computeDistanceBetween(origin, destination) / 1000;
+        }
+
+        function getBinStatus(capacity) {
+            if (capacity >= 80) return 'full';
+            if (capacity >= 40) return 'medium';
+            return 'low';
+        }
+
+        function fetchNearbyBins(userLat, userLon) {
+            const binList = document.getElementById('bin-list');
+            const binsCount = document.getElementById('bins-count');
+            binList.innerHTML = '<div class="loading">Loading bins...</div>';
+
+            database.ref('bins').once('value', (snapshot) => {
+                const binsData = snapshot.val() || {};
+                allBins = [];
+
+                for (let binId in binsData) {
+                    const bin = binsData[binId];
+                    const distance = calculateDistance(userLat, userLon, bin.latitude, bin.longitude);
+                    bin.id = binId;
+                    bin.distance = distance;
+                    allBins.push(bin);
+                }
+
+                allBins.sort((a, b) => a.distance - b.distance);
+                const nearestBins = allBins.slice(0, 5);
+
+                binsCount.textContent = nearestBins.length;
+                binList.innerHTML = nearestBins.length ? '' : '<div>No bins found nearby</div>';
+
+                updateMapMarkers(userLat, userLon, nearestBins);
+                displayBins(nearestBins, userLat, userLon, currentFilter);
+
+                if (nearestBins.length > 0) {
+                    map.setCenter({ lat: nearestBins[0].latitude, lng: nearestBins[0].longitude });
+                    map.setZoom(15);
+                }
+            }).catch(error => {
+                console.error('Error fetching bins:', error);
+                binList.innerHTML = '<div class="error">Failed to load bins: ' + error.message + '</div>';
+            });
+        }
+
+        function updateMapMarkers(userLat, userLon, bins) {
+            binMarkers.forEach(marker => marker.setMap(null));
+            binMarkers = [];
+
+            const filteredBins = currentFilter === 'all' 
+                ? bins 
+                : bins.filter(bin => bin.type.toLowerCase() === currentFilter);
+
+            filteredBins.forEach(bin => {
+                const binIcon = {
+                    url: iconUrls[bin.type.toLowerCase()] || iconUrls.general,
+                    scaledSize: new google.maps.Size(25, 41),
+                    anchor: new google.maps.Point(12, 41)
+                };
+
+                const marker = new google.maps.Marker({
+                    position: { lat: bin.latitude, lng: bin.longitude },
+                    map: map,
+                    icon: binIcon,
+                    title: bin.name || 'Bin'
+                });
+
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `
+                        <div class="p-2">
+                            <h3 class="font-semibold">${bin.name || 'Bin'}</h3>
+                            <p>Type: ${bin.type}</p>
+                            <p>Capacity: ${bin.capacity}% of ${bin.capacityMt}mt</p>
+                            <p>Distance: ${bin.distance.toFixed(2)} km</p>
+                            <p>Status: ${getBinStatus(bin.capacity)}</p>
+                            <button class="btn btn-danger btn-sm" onclick="reportBinFull('${bin.id}')">Report Bin Full</button>
+                        </div>
+                    `
+                });
+
+                marker.addListener('click', () => {
+                    infoWindow.open(map, marker);
+                });
+
+                binMarkers.push(marker);
+            });
+        }
+
+        function displayBins(bins, userLat, userLon, filterType = 'all') {
+            const binList = document.getElementById('bin-list');
+            binList.innerHTML = '';
+
+            const filteredBins = filterType === 'all' 
+                ? bins 
+                : bins.filter(bin => bin.type.toLowerCase() === filterType);
+
+            filteredBins.forEach(bin => {
+                const binStatus = getBinStatus(bin.capacity);
+                const listItem = document.createElement('a');
+                listItem.href = '#';
+                listItem.className = 'd-block p-3 bg-light rounded mb-2 text-decoration-none text-dark hover-bg-secondary fade-in';
+                listItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="fw-semibold mb-0 d-flex align-items-center">
+                            <span class="bin-status-indicator bin-status-${binStatus}"></span>
+                            ${bin.name || bin.type + ' Bin'}
+                        </h6>
+                        <span class="text-muted small">${bin.distance.toFixed(2)} km</span>
+                    </div>
+                    <p class="text-muted mt-1 mb-2">
+                        <i class="fas fa-chart-pie me-2 text-primary"></i>
+                        ${bin.type} - ${bin.capacity}% full
+                    </p>
+                    <div class="d-flex gap-2">
+                        <button class="report-full-btn btn btn-danger btn-sm" data-bin-id="${bin.id}">
+                            <i class="fas fa-exclamation-triangle me-1"></i>Report Full
+                        </button>
+                        <button class="navigate-btn btn btn-primary btn-sm" data-lat="${bin.latitude}" data-lon="${bin.longitude}">
+                            <i class="fas fa-directions me-1"></i>Navigate
+                        </button>
+                    </div>
+                `;
+
+                listItem.querySelector('.report-full-btn').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    reportBinFull(bin.id);
+                });
+
+                listItem.querySelector('.navigate-btn').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const destLat = e.target.getAttribute('data-lat');
+                    const destLon = e.target.getAttribute('data-lon');
+
+                    if (!userMarker) {
+                        alert('Please place a marker first to navigate from your location');
+                        return;
+                    }
+
+                    const userCoords = userMarker.getPosition();
+                    const navigationUrl = `https://www.google.com/maps/dir/?api=1&origin=${userCoords.lat()},${userCoords.lng()}&destination=${destLat},${destLon}`;
+                    window.open(navigationUrl, '_blank');
+                });
+
+                listItem.addEventListener('click', (e) => {
+                    if (e.target.closest('.report-full-btn') || e.target.closest('.navigate-btn')) return;
+                    e.preventDefault();
+                    map.setCenter({ lat: bin.latitude, lng: bin.longitude });
+                    map.setZoom(15);
+                });
+
+                binList.appendChild(listItem);
+            });
+        }
+
+        function reportBinFull(binId) {
+            const binRef = database.ref(`bins/${binId}`);
+
+            binRef.update({
+                capacity: 100,
+                lastReportedFull: firebase.database.ServerValue.TIMESTAMP,
+                reportedBy: auth.currentUser ? auth.currentUser.uid : 'anonymous'
+            }).then(() => {
+                alert('Bin reported as full. Thank you!');
+                const reportsRef = database.ref('bin_reports');
+                reportsRef.push({
+                    binId: binId,
+                    reportedAt: firebase.database.ServerValue.TIMESTAMP,
+                    reportedBy: auth.currentUser ? auth.currentUser.uid : 'anonymous'
+                });
+                const center = map.getCenter();
+                fetchNearbyBins(center.lat(), center.lng());
+            }).catch(error => {
+                console.error('Error reporting bin full:', error);
+                alert('Failed to report bin. Please try again.');
+            });
+        }
+
+        function setupBinFilters(userLat, userLon) {
+            const tabs = document.querySelectorAll('.nav-ylink');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentFilter = tab.getAttribute('data-type');
+                    updateMapMarkers(userLat, userLon, allBins.slice(0, 5));
+                    displayBins(allBins.slice(0, 5), userLat, userLon, currentFilter);
+                });
+            });
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function (...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        function setupBinSearch() {
+            const searchInput = document.getElementById('bin-search');
+            searchInput.addEventListener('input', debounce(() => {
+                const searchTerm = searchInput.value.trim().toLowerCase();
+                const binItems = document.querySelectorAll('#bin-list a');
+                binItems.forEach(item => {
+                    const binText = item.textContent.toLowerCase();
+                    item.style.display = binText.includes(searchTerm) ? '' : 'none';
+                });
+            }, 300));
+        }
+
+        function initMap() {
+            initializeMap();
+            loadTemplates();
+            setupBinSearch();
+            setupBinFilters(YELAHANKA_LAT, YELAHANKA_LON);
+
+            auth.onAuthStateChanged((user) => {
+                if (!user) {
+                    alert('Please log in to access the bin management system');
+                    window.location.href = '/login.html';
+                }
+            });
+        }
+
+        window.reportBinFull = reportBinFull;
+
+        // Load Google Maps API after the DOM is fully loaded and apikeys.js is available
+        document.addEventListener('DOMContentLoaded', () => {
+            // Ensure apikeys.js is loaded before attempting to load Google Maps API
+            if (document.querySelector('script[src="/assets/js/apikeys.js"]')) {
+                loadGoogleMapsAPI();
+            } else {
+                console.error('apikeys.js not loaded');
+                alert('Configuration error: API keys not loaded. Please refresh the page.');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - BinXZer0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        .login-container {
+            min-height: calc(100vh - 136px);
+            display: flex;
+            align-items: center;
+            background: var(--background-light);
+        }
+        .login-card {
+            max-width: 400px;
+            width: 100%;
+            margin: auto;
+        }
+        .login-card .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .role-selector {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .role-option {
+            flex: 1;
+            text-align: center;
+            padding: 1rem;
+            border: 2px solid #dee2e6;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .role-option:hover {
+            border-color: #28a745;
+        }
+        .role-option.selected {
+            border-color: #83189e;
+            background-color: #e9f7ef;
+        }
+        .role-option i {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <!-- Navigation (loaded from gennav.html) -->
+    <div id="navbar-container"></div>
+
+    <!-- Login Form -->
+    <main class="login-container py-5">
+        <div class="container">
+            <div class="login-card">
+                <div class="card">
+                    <div class="card-body p-4">
+                        <h2 class="text-center mb-4">Login to BinXZer0</h2>
+                        
+                        <!-- Role Selector -->
+                        <div class="role-selector">
+                            <div class="role-option" data-role="admin">
+                                <i class="fas fa-user-shield"></i>
+                                <div>Admin</div>
+                            </div>
+                            <div class="role-option" data-role="transporter">
+                                <i class="fas fa-truck"></i>
+                                <div>Transporter</div>
+                            </div>
+                            <div class="role-option" data-role="public">
+                                <i class="fas fa-user"></i>
+                                <div>Public</div>
+                            </div>
+                        </div>
+
+                        <div id="loginError" class="alert alert-danger d-none" role="alert">
+                            Please select a role and fill in all fields!
+                        </div>
+
+                        <form id="loginForm" class="needs-validation" novalidate>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email address</label>
+                                <input type="email" class="form-control" id="email" required>
+                                <div class="invalid-feedback">
+                                    Please enter a valid email address.
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" required>
+                                <div class="invalid-feedback">
+                                    Please enter your password.
+                                </div>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="rememberMe">
+                                <label class="form-check-label" for="rememberMe">Remember me</label>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">Login</button>
+                            <a href="/register.html" class="btn btn-outline-success w-100 mt-2">Register</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer (loaded from bottomnav.html) -->
+    <div id="footer-placeholder"></div>
+
+    <script>
+        // Load navigation bar
+        fetch('/assets/templates/gennav.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('navbar-container').innerHTML = data;
+            })
+            .catch(error => console.error('Error loading navigation:', error));
+
+        // Load footer
+        fetch('/assets/templates/bottomnav.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('footer-placeholder').innerHTML = data;
+            })
+            .catch(error => console.error('Error loading footer:', error));
+    </script>
+
+    <script src="/assets/js/apikeys.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+        const firebaseConfig = window.apiKeys.firebase;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        let selectedRole = "";
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const roleOptions = document.querySelectorAll(".role-option");
+            const loginForm = document.getElementById("loginForm");
+
+            roleOptions.forEach(option => {
+                option.addEventListener("click", function () {
+                    roleOptions.forEach(o => o.classList.remove("selected"));
+                    this.classList.add("selected");
+                    selectedRole = this.getAttribute("data-role").toLowerCase();
+                    console.log("Selected Role:", selectedRole);
+                });
+            });
+
+            loginForm.addEventListener("submit", async function (e) {
+                e.preventDefault();
+
+                const email = document.getElementById("email").value;
+                const password = document.getElementById("password").value;
+                const loginError = document.getElementById("loginError");
+
+                if (!selectedRole || !email || !password) {
+                    loginError.classList.remove("d-none");
+                    return;
+                }
+
+                try {
+                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+
+                    const userRef = ref(db, "users/" + user.uid);
+                    const snapshot = await get(userRef);
+
+                    if (snapshot.exists()) {
+                        const userData = snapshot.val();
+                        const firebaseRole = userData.role ? userData.role.toLowerCase() : "";
+
+                        console.log("Firebase Stored Role:", firebaseRole);
+
+                        if (firebaseRole === selectedRole) {
+                            localStorage.setItem("isAuthenticated", "true");
+                            localStorage.setItem("userRole", userData.role);
+                            localStorage.setItem("userName", userData.fullName);
+                            console.log("Local Storage Updated - Role:", userData.role);
+
+                            // Redirect based on role
+                            switch (firebaseRole) {
+                                case "admin":
+                                    window.location.href = "/pages/admin/admindash.html";
+                                    break;
+                                case "transporter":
+                                    window.location.href = "/pages/transporter/trandash.html";
+                                    break;
+                                case "public":
+                                    window.location.href = "/pages/ppl/ppldash.html";
+                                    break;
+                                default:
+                                    alert("Unknown role. Please contact support.");
+                                    await signOut(auth);
+                                    return;
+                            }
+                        } else {
+                            alert("Role mismatch. Please select the correct role.");
+                            await signOut(auth);
+                        }
+                    } else {
+                        alert("User not found in the database. Please register.");
+                        await signOut(auth);
+                    }
+                } catch (error) {
+                    console.error("Login failed:", error.code, error.message);
+                    alert("Invalid credentials. Please try again.");
+                }
+            });
+        });
+    </script>
+</body>
+</html>

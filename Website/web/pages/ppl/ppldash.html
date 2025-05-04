@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BinXZer0 Dashboard - Smart Waste Management System">
+    <meta name="author" content="BinXZer0 Team">
+    <title>Dashboard - BinXZer0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .dashboard-container {
+            flex: 1 0 auto;
+            padding: 2rem 0;
+        }
+        .dashboard-card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            height: 100%;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+        .card-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        .welcome-banner {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #20bbc9 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        #footer-placeholder {
+            flex-shrink: 0;
+            margin-top: auto;
+        }
+        .loading-spinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+        .notification {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .toast-body {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <a href="#main-content" class="visually-hidden-focusable">Skip to main content</a>
+
+    <!-- Navigation Placeholder -->
+    <div id="navbar-placeholder"></div>
+
+    <div class="content-wrapper">
+        <main id="main-content" class="dashboard-container">
+            <div class="container">
+                <div class="welcome-banner">
+                    <h1 class="h2">Welcome, <span id="userName" aria-live="polite">User</span>!</h1>
+                    <p class="mb-0">You are logged in as <span id="userRole" aria-live="polite">Role</span></p>
+                </div>
+
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="dashboardCards" aria-live="polite"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer Placeholder -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Notification Toast -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
+        <div id="notificationToast" class="toast notification" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="10000">
+            <div class="toast-header">
+                <strong class="me-auto" id="toastTitle">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage"></div>
+        </div>
+    </div>
+
+    <div class="loading-spinner" style="display: none;">
+        <div class="spinner-border text-success" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-database-compat.js"></script>
+    <script src="/assets/js/apikeys.js"></script>
+    <script type="module" src="/assets/js/logout-ui.js"></script>
+    <script>
+        // Load navigation and footer
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const [navResponse, footerResponse] = await Promise.all([
+                    fetch('/assets/templates/pplnav.html'),
+                    fetch('/assets/templates/bottomnav.html')
+                ]);
+                if (!navResponse.ok || !footerResponse.ok) throw new Error('Failed to load templates');
+                const [navData, footerData] = await Promise.all([navResponse.text(), footerResponse.text()]);
+                document.getElementById('navbar-placeholder').innerHTML = navData;
+                document.getElementById('footer-placeholder').innerHTML = footerData;
+                const dropdowns = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+                dropdowns.forEach(dropdown => new bootstrap.Dropdown(dropdown));
+                const logoutButton = document.getElementById('logoutButton');
+                if (logoutButton) logoutButton.id = 'logout-link';
+            } catch (error) {
+                console.error('Error loading templates:', error);
+                showError('Failed to load navigation or footer.');
+            }
+        });
+
+        // Firebase initialization
+        if (!window.apiKeys || !window.apiKeys.firebase) {
+            console.error('Firebase configuration not found');
+            document.body.innerHTML = '<div class="alert alert-danger">Error: Application configuration is missing. Please contact support.</div>';
+        } else {
+            firebase.initializeApp(window.apiKeys.firebase);
+            const auth = firebase.auth();
+            const database = firebase.database();
+            const spinner = document.querySelector('.loading-spinner');
+            let hasShownScheduleNotification = false;
+
+            // Set authentication persistence to local
+            auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+                .then(() => {
+                    console.log('Authentication persistence set to local');
+                })
+                .catch(error => {
+                    console.error('Error setting persistence:', error);
+                    showError('Failed to configure authentication.');
+                });
+
+            async function initializeDashboard() {
+                spinner.style.display = 'block';
+                try {
+                    await checkAuthState();
+                } catch (error) {
+                    console.error('Initialization error:', error);
+                    showError('Failed to load dashboard. Please try again.');
+                } finally {
+                    spinner.style.display = 'none';
+                }
+            }
+
+            function checkAuthState() {
+                return new Promise((resolve, reject) => {
+                    const unsubscribe = auth.onAuthStateChanged(async user => {
+                        unsubscribe();
+                        if (user) {
+                            console.log("Logged in UID:", user.uid);
+                            try {
+                                const userData = await fetchUserData(user);
+                                updateUI(userData);
+                                if (userData.role.toLowerCase() === 'public') {
+                                    await fetchAndShowSchedule(user.uid, userData.address);
+                                }
+                                resolve();
+                            } catch (error) {
+                                reject(error);
+                            }
+                        } else {
+                            window.location.href = "/login.html";
+                        }
+                    }, error => {
+                        unsubscribe();
+                        reject(error);
+                    });
+                });
+            }
+
+            async function fetchUserData(user) {
+                const userRef = database.ref('public/' + user.uid);
+                const snapshot = await userRef.once('value');
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    return {
+                        fullName: data.fullName || data.fullname || "User",
+                        role: data.role || localStorage.getItem("userRole") || "public",
+                        address: data.address || {}
+                    };
+                }
+                return {
+                    fullName: "User",
+                    role: localStorage.getItem("userRole") || "public",
+                    address: {}
+                };
+            }
+
+            // Load user location from localStorage
+            function loadSavedLocation() {
+                const saved = localStorage.getItem('userLocation');
+                return saved ? JSON.parse(saved) : null;
+            }
+
+            // Calculate distance (Haversine formula)
+            function calculateDistance(point1, point2) {
+                if (!point1 || !point2 || !point1.lat || !point1.lng || !point2.lat || !point2.lng) return Infinity;
+                const lat1 = point1.lat;
+                const lon1 = point1.lng;
+                const lat2 = point2.lat;
+                const lon2 = point2.lng;
+                const R = 6371; // Earth's radius in km
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                return R * c;
+            }
+
+            // Format schedule for display
+            function formatSchedule(schedule) {
+                if (!schedule || !schedule.days || schedule.days.length === 0) return 'Not set';
+                const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const selectedDays = schedule.days
+                    .map(d => days[parseInt(d)])
+                    .filter(day => day !== undefined);
+                const timeRange = (schedule.startTime && schedule.endTime)
+                    ? `${schedule.startTime} - ${schedule.endTime}`
+                    : '';
+                return `${selectedDays.join(', ')} ${timeRange}`.trim();
+            }
+
+            async function fetchAndShowSchedule(userId, userAddress) {
+                try {
+                    const regionsRef = database.ref('regions');
+                    const snapshot = await regionsRef.once('value');
+                    const allRegions = snapshot.val() || {};
+                    const userLocation = loadSavedLocation() || { lat: 13.1005, lng: 77.5963 }; // Default to Yelahanka
+
+                    const assignedRegions = Object.entries(allRegions)
+                        .map(([regionId, region]) => ({
+                            id: regionId,
+                            name: region.name || 'Unnamed Region',
+                            schedule: region.schedule ? {
+                                days: region.schedule.days,
+                                startTime: region.schedule.startTime,
+                                endTime: region.schedule.endTime,
+                                formatted: formatSchedule(region.schedule)
+                            } : { formatted: 'No schedule' },
+                            start: region.coordinates && region.coordinates[0] ? region.coordinates[0] : { lat: 0, lng: 0 }
+                        }))
+                        .filter(region => {
+                            // Filter by location (Bengaluru or zipCode 560064)
+                            return userAddress.city?.toLowerCase() === 'bengaluru' || userAddress.zipCode === '560064';
+                        });
+
+                    if (assignedRegions.length === 0) {
+                        if (!hasShownScheduleNotification) {
+                            showNotification('Info', 'No waste collection schedules available for your area.');
+                            hasShownScheduleNotification = true;
+                        }
+                        return;
+                    }
+
+                    // Calculate distance to each region's start point
+                    assignedRegions.forEach(region => {
+                        region.distanceFromUser = calculateDistance(userLocation, region.start);
+                    });
+
+                    // Find the nearest region
+                    const nearestRegion = assignedRegions.reduce((nearest, region) => {
+                        if (!nearest || (region.distanceFromUser < nearest.distanceFromUser && region.start.lat && region.start.lng)) return region;
+                        return nearest;
+                    }, null);
+
+                    if (!hasShownScheduleNotification) {
+                        if (nearestRegion) {
+                            // Prioritize nearest region's schedule
+                            const message = `Your nearest waste collection schedule:<br><strong>${nearestRegion.name}</strong>: ${nearestRegion.schedule.formatted}`;
+                            showNotification('Schedule', message);
+                        } else {
+                            // Fallback to all relevant regions
+                            const scheduleMessages = assignedRegions.map(region => {
+                                return `<strong>${region.name}</strong>: ${region.schedule.formatted}`;
+                            }).join('<br>');
+                            const message = `Your waste collection schedules:<br>${scheduleMessages}`;
+                            showNotification('Schedule', message);
+                        }
+                        hasShownScheduleNotification = true;
+                    }
+                } catch (error) {
+                    console.error('Error fetching schedule:', error);
+                    showNotification('Error', 'Failed to load schedule data.');
+                }
+            }
+
+            function showNotification(title, message) {
+                const toastTitle = document.getElementById('toastTitle');
+                const toastMessage = document.getElementById('toastMessage');
+                if (toastTitle && toastMessage) {
+                    toastTitle.textContent = title;
+                    toastMessage.innerHTML = message;
+                    const toast = new bootstrap.Toast(document.getElementById('notificationToast'));
+                    toast.show();
+                }
+            }
+
+            function updateUI({ fullName, role }) {
+                document.getElementById("userName").textContent = fullName;
+                document.getElementById("userRole").textContent = role;
+                localStorage.setItem("userName", fullName);
+                localStorage.setItem("userRole", role);
+                createDashboardCards(role);
+            }
+
+            function createDashboardCards(role) {
+                const cardsContainer = document.getElementById("dashboardCards");
+                const cards = getCardsByRole(role.toLowerCase());
+                cardsContainer.innerHTML = cards.map(card => `
+                    <div class="col">
+                        <div class="card dashboard-card" role="article">
+                            <div class="card-body text-center p-4">
+                                <i class="fas ${card.icon} card-icon" aria-hidden="true"></i>
+                                <h2 class="card-title h5">${card.title}</h2>
+                                <p class="card-text">${card.description}</p>
+                                <a href="${card.link}" class="btn btn-outline-success"
+                                    ${card.external ? 'target="_blank" rel="noopener noreferrer"' : ''}>
+                                    Access
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            function getCardsByRole(role) {
+                const publicCards = [
+                    { icon: "fa-user", title: "Profile", description: "View and edit your profile", link: "/pages/ppl/Profile.html" },
+                    { icon: "fa-calendar-alt", title: "Collection Schedule", description: "View waste collection schedule", link: "/pages/ppl/regionpublic.html" },
+                    { icon: "fa-map-marker-alt", title: "Nearby Bins", description: "Find waste bins near you", link: "/pages/ppl/bins.html" },
+                    { icon: "fa-plane", title: "Manage Absence", description: "Inform your unavailability", link: "/pages/ppl/leave.html" },
+                    { icon: "fa-exclamation-circle", title: "Report Issue", description: "Report waste collection problems", link: "/pages/ppl/contact1.html" },
+                    { icon: "fa-recycle", title: "Recycling Tips", description: "Learn proper recycling techniques", link: "https://www.wikihow.com/Recycle", external: true }
+                ];
+                return role === "public" ? publicCards : [
+                    { icon: "fa-sign-in-alt", title: "Login", description: "Please login to access dashboard", link: "/login.html" }
+                ];
+            }
+
+            function showError(message) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+                errorDiv.role = 'alert';
+                errorDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.querySelector('.dashboard-container .container').prepend(errorDiv);
+            }
+
+            document.addEventListener("DOMContentLoaded", initializeDashboard);
+        }
+    </script>
+</body>
+</html>

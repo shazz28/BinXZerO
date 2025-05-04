@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - BinXZer0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .analytics-container {
+            flex: 1;
+            padding: 2rem 0;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .card-icon {
+            opacity: 0.5;
+            font-size: 2rem;
+        }
+        footer {
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+    <header id="nav-container"></header>
+
+    <div class="analytics-container">
+        <div class="container">
+            <h1 class="mb-4">Analytics</h1>
+            
+            <div class="row g-4 mb-5">
+                <div class="col-md-3">
+                    <div class="card text-white" style="background-color: var(--primary-color);">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Bins</h5>
+                            <h2 class="card-text" id="total-bins">0</h2>
+                            <i class="fas fa-dumpster float-end card-icon"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white" style="background-color: var(--primary-color);">
+                        <div class="card-body">
+                            <h5 class="card-title">Active Bins</h5>
+                            <h2 class="card-text" id="active-bins">0</h2>
+                            <i class="fas fa-check-circle float-end card-icon"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Needs Attention</h5>
+                            <h2 class="card-text" id="needs-attention">0</h2>
+                            <i class="fas fa-exclamation-triangle float-end card-icon"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Critical</h5>
+                            <h2 class="card-text" id="critical">0</h2>
+                            <i class="fas fa-skull float-end card-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-5">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Waste Collection Trend</h5>
+                            <canvas id="wasteChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Waste Distribution</h5>
+                            <canvas id="distributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer id="footer-container"></footer>
+
+    <script src="/assets/js/apikeys.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <script src="/assets/js/logout-ui.js" type="module"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+        async function init() {
+            try {
+                await Promise.all([
+                    fetch('/assets/templates/adminnav.html').then(res => res.text()).then(data => document.getElementById('nav-container').innerHTML = data),
+                    fetch('/assets/templates/bottomnav.html').then(res => res.text()).then(data => document.getElementById('footer-container').innerHTML = data)
+                ]);
+
+                const app = initializeApp(window.apiKeys.firebase);
+                const auth = getAuth(app);
+                const db = getDatabase(app);
+
+                onAuthStateChanged(auth, (user) => {
+                    if (!user) {
+                        window.location.href = "/login.html";
+                    } else {
+                        loadAnalyticsData();
+                        initializeCharts();
+                    }
+                });
+
+                function loadAnalyticsData() {
+                    const binsRef = ref(db, 'bins');
+                    onValue(binsRef, (snapshot) => {
+                        const bins = snapshot.val() || {};
+                        let totalBins = 0;
+                        let activeBins = 0;
+                        let needsAttention = 0;
+                        let critical = 0;
+                        const wasteTypes = { Plastic: 0, Paper: 0, Metal: 0, Glass: 0, Organic: 0 };
+
+                        for (const bin of Object.values(bins)) {
+                            totalBins++;
+                            if (bin.status !== 'inactive') activeBins++;
+                            if (bin.capacity >= 80) critical++;
+                            else if (bin.capacity >= 40) needsAttention++;
+                            if (bin.type && wasteTypes[bin.type]) wasteTypes[bin.type]++;
+                        }
+
+                        document.getElementById('total-bins').textContent = totalBins;
+                        document.getElementById('active-bins').textContent = activeBins;
+                        document.getElementById('needs-attention').textContent = needsAttention;
+                        document.getElementById('critical').textContent = critical;
+
+                        updateDistributionChart(wasteTypes);
+                    });
+                }
+
+                let wasteChart, distributionChart;
+
+                function initializeCharts() {
+                    const wasteCtx = document.getElementById('wasteChart').getContext('2d');
+                    wasteChart = new Chart(wasteCtx, {
+                        type: 'line',
+                        data: {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                            datasets: [{
+                                label: 'Waste Collected (tons)',
+                                data: [12, 19, 15, 17, 14, 13], // Placeholder; update with Firebase data if available
+                                borderColor: 'var(--primary-color)',
+                                tension: 0.1
+                            }]
+                        }
+                    });
+
+                    const distributionCtx = document.getElementById('distributionChart').getContext('2d');
+                    distributionChart = new Chart(distributionCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Plastic', 'Paper', 'Metal', 'Glass', 'Organic'],
+                            datasets: [{
+                                data: [30, 25, 15, 10, 20], // Updated dynamically below
+                                backgroundColor: [
+                                    'var(--primary-color)',
+                                    '#6c757d',
+                                    '#ffc107',
+                                    '#20c997',
+                                    '#dc3545'
+                                ]
+                            }]
+                        }
+                    });
+                }
+
+                function updateDistributionChart(wasteTypes) {
+                    distributionChart.data.datasets[0].data = [
+                        wasteTypes.Plastic,
+                        wasteTypes.Paper,
+                        wasteTypes.Metal,
+                        wasteTypes.Glass,
+                        wasteTypes.Organic
+                    ];
+                    distributionChart.update();
+                }
+            } catch (error) {
+                console.error("Initialization failed:", error);
+                alert("Failed to initialize analytics.");
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - BinXZer0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        body { display: flex; flex-direction: column; min-height: 100vh; margin: 0; padding: 0; }
+        .dashboard-container { padding: 2rem 0; }
+        .dashboard-card { border: none; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease; height: 100%; margin-bottom: 1.5rem; }
+        .dashboard-card:hover { transform: translateY(-5px); }
+        .card-icon { font-size: 2rem; color: #28a745; margin-bottom: 1rem; }
+        .welcome-banner { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 2rem; border-radius: 0.5rem; margin-bottom: 2rem; }
+        footer { flex-shrink: 0; background-color: #212529; color: white;  margin-top: auto; }
+        #footer-placeholder {
+            flex-shrink: 0; /* Prevent the footer from shrinking */
+            margin-top: auto;
+        }
+    </style>
+    <script src="/assets/js/apikeys.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <div id="navbar-placeholder"></div>
+
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        <div class="dashboard-container">
+            <div class="container">
+                <div class="welcome-banner">
+                    <h2>Welcome <span id="userName">User</span>!</h2>
+                    <p class="mb-0">You are logged in as <span id="userRole">Role</span></p>
+                </div>
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="dashboardCards">
+                    <!-- Cards will be dynamically populated based on user role -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div id="footer-placeholder"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/assets/js/logout-ui.js"type="module"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+        
+        // Load navbar and footer
+        fetch('/assets/templates/tranav.html')
+            .then(response => response.text())
+            .then(data => document.getElementById('navbar-placeholder').innerHTML = data);
+        fetch('/assets/templates/bottomnav.html')
+            .then(response => response.text())
+            .then(data => document.getElementById('footer-placeholder').innerHTML = data);
+
+        const app = initializeApp(window.apiKeys.firebase);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const userRef = ref(database, 'users/' + user.uid);
+                get(userRef).then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const userData = snapshot.val();
+                        const displayfullName = userData.displayfullName || userData.fullName || user.displayfullName || "User";
+                        const userRole = userData.role || localStorage.getItem("userRole") || "User";
+                        document.getElementById("userName").textContent = displayfullName;
+                        document.getElementById("userRole").textContent = userRole;
+                        localStorage.setItem("userName", displayfullName);
+                        localStorage.setItem("userRole", userRole);
+                        createDashboardCards(userRole);
+                    } else {
+                        const displayfullName = user.displayfullName || "User";
+                        document.getElementById("userName").textContent = displayfullName;
+                        const userRole = localStorage.getItem("userRole") || "User";
+                        document.getElementById("userRole").textContent = userRole;
+                        createDashboardCards(userRole);
+                    }
+                }).catch((error) => {
+                    console.error("Error fetching user data:", error);
+                    fallbackToLocalStorage();
+                });
+            } else {
+                window.location.href = "/login.html";
+            }
+        });
+
+        function fallbackToLocalStorage() {
+            const userName = localStorage.getItem("userName") || "User";
+            const userRole = localStorage.getItem("userRole") || "User";
+            document.getElementById("userName").textContent = userName;
+            document.getElementById("userRole").textContent = userRole;
+            createDashboardCards(userRole);
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const userName = localStorage.getItem("userName") || "User";
+            const userRole = localStorage.getItem("userRole") || "User";
+            document.getElementById("userName").textContent = userName;
+            document.getElementById("userRole").textContent = userRole;
+        });
+
+        function createDashboardCards(role) {
+            const cardsContainer = document.getElementById("dashboardCards");
+            let cards = [];
+            switch(role.toLowerCase()) {
+                case "transporter":
+                    cards = [
+                        { icon: "fa-user", title: "Profile", description: "View and edit your profile", link: "/pages/transporter/Profile.html" }, 
+                        { icon: "fa-route", title: "My Routes", description: "View assigned collection routes", link: "/pages/transporter/routetransport.html" },
+                        { icon: "fa fa-plane me-2", title: "Apply for Leave", description: "Submit a leave request", link: "/pages/transporter/leave.html" },
+                        { icon: "fa fa-location-arrow", title: "Location", description: "View current location and route", link: "/pages/transporter/location.html" },
+                        { icon: "fa-exclamation-circle", title: "Report Issue", description: "Report problems with waste collection", link: "/pages/transporter/contact1.html" }
+                    ];
+                    break;
+                default:
+                    cards = [
+                        { icon: "fa-sign-in-alt", title: "Login", description: "Please login to access dashboard", link: "/login.html" }
+                    ];
+            }
+            cardsContainer.innerHTML = "";
+            cards.forEach(card => {
+                const cardHTML = `
+                    <div class="col">
+                        <div class="card dashboard-card">
+                            <div class="card-body text-center p-4">
+                                <i class="fas ${card.icon} card-icon"></i>
+                                <h5 class="card-title">${card.title}</h5>
+                                <p class="card-text">${card.description}</p>
+                                <a href="${card.link}" class="btn btn-outline-success">Access</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                cardsContainer.innerHTML += cardHTML;
+            });
+        }
+    </script>
+</body>
+</html>
