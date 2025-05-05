@@ -4,16 +4,16 @@
 
 const apiKeys = {
     firebase: {
-        apiKey: "AIzaSyD9yjnkHH3CI0FfbHj8s6zVrloWSFrE654",
-        authDomain: "binxzero-7d76f.firebaseapp.com",
-        databaseURL: "https://binxzero-7d76f-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "binxzero-7d76f",
-        storageBucket: "binxzero-7d76f.firebasestorage.app",
-        messagingSenderId: "870557518976",
-        appId: "1:870557518976:web:75e9df319f6500d9a0aa65",
-        measurementId: "G-6V9C837NQ5"
+        apiKey: "Your api key",
+        authDomain: "",
+        databaseURL: "",
+        projectId: "",
+        storageBucket: "",
+        messagingSenderId: "",
+        appId: "",
+        measurementId: ""
     },
-    GOOGLE_MAPS_API_KEY: 'AIzaSyDPYwNwl874DkjLno5l6jEkPOYDbnJSIvU'
+    GOOGLE_MAPS_API_KEY: ''
 };
 
 window.apiKeys = apiKeys;
